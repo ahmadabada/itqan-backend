@@ -2,7 +2,9 @@
 
 use App\Enums\UserRole;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
+use App\Livewire\Admin\Exams\Index as AdminExamsIndex;
 use App\Livewire\Admin\Exams\PendingReview as AdminPendingReview;
+use App\Livewire\Admin\Exams\Show as AdminExamShow;
 use App\Livewire\Admin\Permits\Index as AdminPermits;
 use App\Livewire\Admin\Settings\Index as AdminSettings;
 use App\Livewire\Admin\Students\Index as AdminStudents;
@@ -10,6 +12,7 @@ use App\Livewire\Admin\Users\Index as AdminUsers;
 use App\Livewire\Auth\Login;
 use App\Livewire\Examiner\Dashboard as ExaminerDashboard;
 use App\Livewire\Examiner\ExamSession;
+use App\Livewire\Examiner\MyExams as ExaminerMyExams;
 use App\Livewire\Public\ResultQuery;
 use App\Http\Controllers\ResultPdfController;
 use Illuminate\Support\Facades\Auth;
@@ -43,18 +46,21 @@ Route::post('logout', function () {
 
 // Admin panel (super_admin + admin)
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
-    Route::get('dashboard',      AdminDashboard::class)->name('dashboard');
-    Route::get('users',          AdminUsers::class)->name('users');
-    Route::get('students',       AdminStudents::class)->name('students');
-    Route::get('permits',        AdminPermits::class)->name('permits');
-    Route::get('exams/pending',  AdminPendingReview::class)->name('exams.pending');
-    Route::get('settings',       AdminSettings::class)->name('settings');
+    Route::get('dashboard',         AdminDashboard::class)->name('dashboard');
+    Route::get('users',             AdminUsers::class)->name('users');
+    Route::get('students',          AdminStudents::class)->name('students');
+    Route::get('permits',           AdminPermits::class)->name('permits');
+    Route::get('exams',             AdminExamsIndex::class)->name('exams.index');
+    Route::get('exams/pending',     AdminPendingReview::class)->name('exams.pending');
+    Route::get('exams/{exam}',      AdminExamShow::class)->name('exams.show')->whereNumber('exam');
+    Route::get('settings',          AdminSettings::class)->name('settings');
 });
 
 // Examiner panel
 Route::middleware('auth')->prefix('examiner')->name('examiner.')->group(function () {
     Route::get('dashboard', ExaminerDashboard::class)->name('dashboard');
     Route::get('exam',      ExamSession::class)->name('exam');
+    Route::get('exams',     ExaminerMyExams::class)->name('exams');
 });
 
 // Public — no auth required (BR-QUERY-01)
