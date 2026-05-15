@@ -70,7 +70,25 @@ html {
     border-color: #CBD5E1 !important;            /* slate-300 — visible on white */
     border-bottom-color: #94A3B8 !important;     /* slate-400 — slight depth */
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+    color: #0F172A !important;                   /* slate-900 — strong text */
+    font-weight: 500 !important;
     transition: all 0.15s ease;
+}
+
+/* Selects: ensure the selected option text is dark, not faded */
+select[data-flux-control] {
+    color: #0F172A !important;
+}
+select[data-flux-control] option {
+    color: #0F172A;
+    background-color: #FFFFFF;
+}
+
+/* Placeholder stays gray (visible but distinguishable from real values) */
+[data-flux-control]::placeholder {
+    color: #94A3B8 !important;                   /* slate-400 */
+    font-weight: 400 !important;
+    opacity: 1 !important;
 }
 
 [data-flux-control]:not(button):not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover:not(:disabled) {
@@ -90,6 +108,15 @@ html {
     background-color: #F1F5F9 !important;        /* slate-100 */
     color: #64748B !important;
     cursor: not-allowed;
+}
+
+/* Browser autofill — keep dark text instead of yellow background and faded text */
+[data-flux-control]:-webkit-autofill,
+[data-flux-control]:-webkit-autofill:hover,
+[data-flux-control]:-webkit-autofill:focus {
+    -webkit-text-fill-color: #0F172A !important;
+    -webkit-box-shadow: 0 0 0 1000px #F8FAFC inset !important;
+    transition: background-color 5000s ease-in-out 0s;
 }
 
 /* Labels — make them bolder for clarity */
