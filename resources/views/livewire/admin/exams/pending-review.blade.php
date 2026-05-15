@@ -1,10 +1,10 @@
-<div class="p-8">
+<div class="p-4 sm:p-6 lg:p-8">
 
     {{-- Header --}}
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h2 class="text-2xl font-bold text-neutral-900">مراجعة التعارضات</h2>
-            <p class="text-neutral-500 text-sm mt-0.5">
+    <div class="flex items-center justify-between mb-5 sm:mb-6 gap-3">
+        <div class="min-w-0">
+            <h2 class="text-xl sm:text-2xl font-bold text-neutral-900">مراجعة التعارضات</h2>
+            <p class="text-neutral-500 text-xs sm:text-sm mt-0.5">
                 {{ $this->totalPending }} اختبار بانتظار المراجعة
             </p>
         </div>

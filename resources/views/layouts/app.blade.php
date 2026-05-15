@@ -12,7 +12,7 @@
     <link href="https://fonts.bunny.net/css?family=tajawal:400,500,700,900&display=swap" rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @fluxStyles
+    @fluxAppearance
     @livewireStyles
 </head>
 <body class="bg-neutral-50 text-neutral-900 antialiased">

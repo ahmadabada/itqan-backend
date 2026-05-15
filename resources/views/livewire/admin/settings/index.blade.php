@@ -1,8 +1,8 @@
-<div class="p-8">
+<div class="p-4 sm:p-6 lg:p-8">
 
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold text-neutral-900">إعدادات النظام</h2>
-        <p class="text-neutral-500 text-sm mt-0.5">القيم الافتراضية للنظام</p>
+    <div class="mb-6 sm:mb-8">
+        <h2 class="text-xl sm:text-2xl font-bold text-neutral-900">إعدادات النظام</h2>
+        <p class="text-neutral-500 text-xs sm:text-sm mt-0.5">القيم الافتراضية للنظام</p>
     </div>
 
     <div class="max-w-2xl">

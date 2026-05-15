@@ -1,11 +1,11 @@
-<div class="p-8">
+<div class="p-4 sm:p-6 lg:p-8">
 
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold text-neutral-900">أذونات إعادة الاختبار</h2>
-        <p class="text-neutral-500 text-sm mt-0.5">منح أذونات لإعادة الاختبار</p>
+    <div class="mb-6 sm:mb-8">
+        <h2 class="text-xl sm:text-2xl font-bold text-neutral-900">أذونات إعادة الاختبار</h2>
+        <p class="text-neutral-500 text-xs sm:text-sm mt-0.5">منح أذونات لإعادة الاختبار</p>
     </div>
 
-    <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+    <div class="grid grid-cols-1 gap-6 lg:gap-8 lg:grid-cols-2">
 
         {{-- Grant form --}}
         <div class="bg-white rounded-xl border border-neutral-200 p-6">
