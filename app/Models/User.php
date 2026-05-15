@@ -2,31 +2,69 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
+use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable(['national_id', 'first_name', 'second_name', 'third_name', 'family_name', 'password_hash', 'role', 'is_active'])]
+#[Hidden(['password_hash', 'remember_token'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    public function getAuthPassword(): string
+    {
+        return $this->password_hash;
+    }
+
+    public function getAuthIdentifierName(): string
+    {
+        return 'national_id';
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->is_super_admin;
+    }
+
+    public function fullName(): string
+    {
+        return implode(' ', array_filter([
+            $this->first_name,
+            $this->second_name,
+            $this->third_name,
+            $this->family_name,
+        ]));
+    }
+
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'role'           => UserRole::class,
+            'is_super_admin' => 'boolean',
+            'is_active'      => 'boolean',
+            'last_login_at'  => 'datetime',
+            'password_hash'  => 'hashed',
         ];
+    }
+
+    public function exams(): HasMany
+    {
+        return $this->hasMany(Exam::class, 'examiner_id');
+    }
+
+    public function grantedPermits(): HasMany
+    {
+        return $this->hasMany(ReexamPermit::class, 'granted_by');
+    }
+
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AuditLog::class);
     }
 }
