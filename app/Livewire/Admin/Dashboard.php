@@ -2,23 +2,26 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\Exam;
+use App\Models\Student;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-#[Layout('layouts.app')]
+#[Layout('layouts.admin')]
 #[Title('لوحة التحكم')]
 class Dashboard extends Component
 {
     public function render()
     {
-        /** @var User $user */
-        $user = Auth::user();
-
         return view('livewire.admin.dashboard', [
-            'user' => $user,
+            'user'          => Auth::user(),
+            'totalStudents' => Student::count(),
+            'totalUsers'    => User::where('is_super_admin', false)->count(),
+            'totalExams'    => Exam::count(),
+            'pendingExams'  => Exam::where('status', 'pending_review')->count(),
         ]);
     }
 }

@@ -2,6 +2,9 @@
 
 use App\Enums\UserRole;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
+use App\Livewire\Admin\Settings\Index as AdminSettings;
+use App\Livewire\Admin\Students\Index as AdminStudents;
+use App\Livewire\Admin\Users\Index as AdminUsers;
 use App\Livewire\Auth\Login;
 use App\Livewire\Examiner\Dashboard as ExaminerDashboard;
 use Illuminate\Support\Facades\Auth;
@@ -36,6 +39,9 @@ Route::post('logout', function () {
 // Admin panel (super_admin + admin)
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('dashboard', AdminDashboard::class)->name('dashboard');
+    Route::get('users',     AdminUsers::class)->name('users');
+    Route::get('students',  AdminStudents::class)->name('students');
+    Route::get('settings',  AdminSettings::class)->name('settings');
 });
 
 // Examiner panel
