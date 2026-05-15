@@ -22,9 +22,9 @@ class ScoreCalculator
         $total = 0.0;
         foreach ($questions as $q) {
             $total += static::questionScore(
-                $q['error_count'],
-                $q['warning_count'],
-                $q['continuation_count'],
+                $q['errors_count'],
+                $q['warnings_count'],
+                $q['continuations_count'],
             );
         }
         return round($total + $rulingsScore, 2);
