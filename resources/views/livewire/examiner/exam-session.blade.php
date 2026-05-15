@@ -1,14 +1,49 @@
 <div class="min-h-screen bg-gradient-to-b from-neutral-50 via-white to-neutral-50 flex flex-col">
 
-    {{-- Top bar --}}
-    <header class="bg-white border-b border-neutral-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
-        <h1 class="text-base font-bold text-primary-500">أكاديمية الإتقان — واجهة المختبر</h1>
-        <div class="flex items-center gap-4">
-            <span class="text-sm text-neutral-500">{{ $examiner->fullName() }}</span>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <flux:button type="submit" variant="ghost" size="sm">خروج</flux:button>
-            </form>
+    {{-- ─── Top bar (clean, mobile-friendly) ─── --}}
+    <header class="bg-white/80 backdrop-blur-md border-b border-neutral-100 flex-shrink-0 sticky top-0 z-20">
+        <div class="px-4 sm:px-6 h-14 flex items-center justify-between max-w-2xl mx-auto">
+
+            {{-- Brand: logo dot + name --}}
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700
+                            flex items-center justify-center text-white font-black text-sm
+                            shadow-sm shadow-primary-500/30 flex-shrink-0">
+                    إ
+                </div>
+                <div class="leading-tight min-w-0">
+                    <p class="text-sm font-bold text-neutral-800 truncate">أكاديمية الإتقان</p>
+                    <p class="text-[10px] text-neutral-400 -mt-0.5">واجهة المختبر</p>
+                </div>
+            </div>
+
+            {{-- User: avatar + short name + logout --}}
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="hidden sm:flex items-center gap-2 ps-3 pe-3 py-1 rounded-full bg-neutral-50 ring-1 ring-neutral-100">
+                    <div class="w-6 h-6 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-bold">
+                        {{ mb_substr($examiner->first_name, 0, 1) }}
+                    </div>
+                    <span class="text-xs font-semibold text-neutral-700">{{ $examiner->shortName() }}</span>
+                </div>
+                {{-- Mobile: avatar only --}}
+                <div class="sm:hidden w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-bold ring-1 ring-primary-200/40"
+                     title="{{ $examiner->shortName() }}">
+                    {{ mb_substr($examiner->first_name, 0, 1) }}
+                </div>
+
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit"
+                            title="تسجيل الخروج"
+                            class="w-9 h-9 rounded-full flex items-center justify-center
+                                   text-neutral-400 hover:text-danger-500 hover:bg-danger-50
+                                   transition-all duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
         </div>
     </header>
 
@@ -284,17 +319,10 @@
                 <button
                     @click="goTo('rulings')"
                     class="px-3.5 py-1.5 rounded-full text-sm transition-all duration-200"
-                    :class="subStep === 'rulings'
+                    :class="(subStep === 'rulings' || subStep === 'summary')
                         ? 'bg-primary-500 text-white font-bold shadow-sm shadow-primary-500/30'
                         : 'text-neutral-500 hover:text-neutral-800 hover:bg-neutral-50 font-medium'"
                 >الأحكام</button>
-                <button
-                    @click="goTo('summary')"
-                    class="px-3.5 py-1.5 rounded-full text-sm transition-all duration-200"
-                    :class="subStep === 'summary'
-                        ? 'bg-primary-500 text-white font-bold shadow-sm shadow-primary-500/30'
-                        : 'text-neutral-500 hover:text-neutral-800 hover:bg-neutral-50 font-medium'"
-                >الملخص</button>
             </div>
         </div>
 

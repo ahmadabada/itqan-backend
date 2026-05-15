@@ -14,7 +14,7 @@
     @fluxAppearance
     @livewireStyles
 </head>
-<body class="bg-neutral-100 text-neutral-900 antialiased h-screen overflow-hidden" x-data="{ sidebarOpen: false }" @keydown.escape.window="sidebarOpen = false">
+<body class="bg-neutral-100 text-neutral-900 antialiased h-[100dvh] overflow-hidden" x-data="{ sidebarOpen: false }" @keydown.escape.window="sidebarOpen = false">
     <flux:toast />
 
     @php
@@ -165,7 +165,7 @@
     </aside>
 
     {{-- ════════════════════ Main (offset on lg by sidebar width on the right) ════════════════════ --}}
-    <div class="h-screen flex flex-col lg:mr-64">
+    <div class="h-[100dvh] flex flex-col lg:mr-64 min-h-0">
 
         {{-- Top bar / header --}}
         <header class="bg-white border-b border-neutral-200 z-20 flex-shrink-0">
@@ -210,7 +210,7 @@
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto">
+        <main class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
             {{ $slot }}
         </main>
 

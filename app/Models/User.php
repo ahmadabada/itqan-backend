@@ -42,6 +42,11 @@ class User extends Authenticatable
         ]));
     }
 
+    public function shortName(): string
+    {
+        return trim($this->first_name . ' ' . ($this->family_name ?? ''));
+    }
+
     protected function casts(): array
     {
         return [
