@@ -59,3 +59,41 @@ html {
     direction: rtl;
     font-feature-settings: "kern", "liga";
 }
+
+/* ─────────────────────────────────────────────
+   Form controls override — make Flux inputs/selects more visible
+   (default Flux border-zinc-200 + shadow-xs is too subtle on white bg)
+   ───────────────────────────────────────────── */
+[data-flux-control]:not(button):not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+    background-color: #F8FAFC !important;        /* slate-50 */
+    border-width: 1.5px !important;
+    border-color: #CBD5E1 !important;            /* slate-300 — visible on white */
+    border-bottom-color: #94A3B8 !important;     /* slate-400 — slight depth */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.15s ease;
+}
+
+[data-flux-control]:not(button):not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover:not(:disabled) {
+    border-color: #94A3B8 !important;            /* slate-400 */
+}
+
+[data-flux-control]:not(button):not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+[data-flux-control]:not(button):not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus-visible {
+    background-color: #FFFFFF !important;
+    border-color: var(--color-primary-500) !important;
+    box-shadow: 0 0 0 3px rgba(2, 74, 125, 0.12) !important;
+    outline: none !important;
+}
+
+[data-flux-control]:disabled,
+[data-flux-control][readonly] {
+    background-color: #F1F5F9 !important;        /* slate-100 */
+    color: #64748B !important;
+    cursor: not-allowed;
+}
+
+/* Labels — make them bolder for clarity */
+[data-flux-field] [data-flux-label] {
+    font-weight: 600 !important;
+    color: #1E293B !important;                   /* slate-800 */
+}
