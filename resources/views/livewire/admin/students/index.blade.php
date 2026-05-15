@@ -31,6 +31,7 @@
         <table class="w-full text-sm min-w-[600px]">
             <thead class="bg-neutral-50 border-b border-neutral-200">
                 <tr>
+                    <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">رقم الهوية</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الاسم الكامل</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الجنس</th>
@@ -41,7 +42,14 @@
             <tbody class="divide-y divide-neutral-100">
                 @forelse($students as $student)
                     <tr class="hover:bg-neutral-50 transition-colors">
-                        <td class="px-4 py-3 font-mono text-neutral-700">{{ $student->national_id }}</td>
+                        <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration + ($students->firstItem() ?? 1) - 1 }}</td>
+                        <td class="px-4 py-3 font-mono text-neutral-700">
+                            @if($student->national_id)
+                                {{ $student->national_id }}
+                            @else
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">بدون هوية</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 font-medium text-neutral-900">{{ $student->fullName() }}</td>
                         <td class="px-4 py-3">
                             @if($student->gender)
@@ -74,7 +82,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-4 py-8 text-center text-neutral-400">
+                        <td colspan="6" class="px-4 py-8 text-center text-neutral-400">
                             @if($search)
                                 لا توجد نتائج للبحث عن "{{ $search }}"
                             @else
@@ -110,12 +118,12 @@
                 <form wire:submit="saveStudent" class="px-6 py-5 space-y-4">
 
                     <flux:field>
-                        <flux:label>رقم الهوية</flux:label>
+                        <flux:label>رقم الهوية <span class="text-xs text-neutral-400 font-normal">(اختياري — مطلوب فقط لإجراء اختبار)</span></flux:label>
                         <flux:input
                             wire:model="form_national_id"
                             type="text"
                             inputmode="numeric"
-                            :readonly="(bool)$editStudentId"
+                            placeholder="اتركه فارغاً إذا لم يتوفّر"
                         />
                         <flux:error name="form_national_id" />
                     </flux:field>

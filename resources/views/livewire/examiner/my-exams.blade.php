@@ -75,6 +75,9 @@
                 $color = $statusColors[$exam->status?->value] ?? 'bg-neutral-100 text-neutral-700';
             @endphp
             <div class="bg-white rounded-xl border border-neutral-200 p-4 hover:border-primary-200 hover:shadow-sm transition-all flex items-center justify-between gap-4">
+                <div class="w-9 h-9 rounded-full bg-neutral-50 flex items-center justify-center text-xs font-bold text-neutral-500 tabular-nums flex-shrink-0">
+                    {{ $loop->iteration + ($exams->firstItem() ?? 1) - 1 }}
+                </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
                         <p class="font-semibold text-neutral-900 truncate">{{ $exam->student?->fullName() }}</p>

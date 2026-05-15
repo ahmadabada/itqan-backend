@@ -88,9 +88,11 @@ class Index extends Component
     {
         $currentUser = Auth::user();
 
+        // National ID is optional, but unique when provided.
+        // Required at exam time (enforced in Examiner\ExamSession::startExam).
         $nationalIdRule = $this->editStudentId
-            ? ['required', 'string', 'unique:students,national_id,' . $this->editStudentId]
-            : ['required', 'string', 'unique:students,national_id'];
+            ? ['nullable', 'string', 'unique:students,national_id,' . $this->editStudentId]
+            : ['nullable', 'string', 'unique:students,national_id'];
 
         $this->validate([
             'form_national_id' => $nationalIdRule,
@@ -100,14 +102,13 @@ class Index extends Component
             'form_family_name' => ['required', 'string', 'max:50'],
             'form_gender'      => ['nullable', 'in:male,female'],
         ], [
-            'form_national_id.required' => 'رقم الهوية مطلوب.',
             'form_national_id.unique'   => 'رقم الهوية مسجّل مسبقاً.',
             'form_first_name.required'  => 'الاسم الأول مطلوب.',
             'form_family_name.required' => 'اسم العائلة مطلوب.',
         ]);
 
         $data = [
-            'national_id'  => $this->form_national_id,
+            'national_id'  => $this->form_national_id ?: null,
             'first_name'   => $this->form_first_name,
             'second_name'  => $this->form_second_name ?: null,
             'third_name'   => $this->form_third_name ?: null,

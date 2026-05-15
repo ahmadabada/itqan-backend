@@ -73,6 +73,7 @@
         <table class="w-full text-sm min-w-[800px]">
             <thead class="bg-neutral-50 border-b border-neutral-200">
                 <tr>
+                    <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الطالب</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">المختبر</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">النوع</th>
@@ -99,9 +100,10 @@
             <tbody class="divide-y divide-neutral-100">
                 @forelse($exams as $exam)
                     <tr class="hover:bg-neutral-50 transition-colors">
+                        <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration + ($exams->firstItem() ?? 1) - 1 }}</td>
                         <td class="px-4 py-3">
                             <div class="font-medium text-neutral-900">{{ $exam->student?->fullName() }}</div>
-                            <div class="text-xs text-neutral-400 font-mono mt-0.5">{{ $exam->student?->national_id }}</div>
+                            <div class="text-xs text-neutral-400 font-mono mt-0.5">{{ $exam->student?->national_id ?? '—' }}</div>
                         </td>
                         <td class="px-4 py-3 text-neutral-700">{{ $exam->examiner?->fullName() ?? '—' }}</td>
                         <td class="px-4 py-3 text-neutral-600 text-xs">{{ $exam->exam_type?->label() }}</td>
@@ -145,7 +147,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-12 text-center text-neutral-400">
+                        <td colspan="8" class="px-4 py-12 text-center text-neutral-400">
                             لا توجد اختبارات مطابقة للفلاتر.
                         </td>
                     </tr>

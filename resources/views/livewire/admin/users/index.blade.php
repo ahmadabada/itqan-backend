@@ -31,6 +31,7 @@
         <table class="w-full text-sm">
             <thead class="bg-neutral-50 border-b border-neutral-200">
                 <tr>
+                    <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">رقم الهوية</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الاسم</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الدور</th>
@@ -42,6 +43,7 @@
             <tbody class="divide-y divide-neutral-100">
                 @forelse($users as $user)
                     <tr class="hover:bg-neutral-50 transition-colors">
+                        <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration }}</td>
                         <td class="px-4 py-3 font-mono text-neutral-700">{{ $user->national_id }}</td>
                         <td class="px-4 py-3 font-medium text-neutral-900">{{ $user->fullName() }}</td>
                         <td class="px-4 py-3">
@@ -97,7 +99,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-neutral-400">
+                        <td colspan="7" class="px-4 py-8 text-center text-neutral-400">
                             لا يوجد مستخدمون
                         </td>
                     </tr>

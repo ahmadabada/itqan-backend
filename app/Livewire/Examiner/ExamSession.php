@@ -104,6 +104,19 @@ class ExamSession extends Component
 
     public function selectStudent(int $studentId): void
     {
+        $student = Student::find($studentId);
+        if (! $student) {
+            $this->dispatch('notify', type: 'danger', message: 'الطالب غير موجود.');
+            return;
+        }
+
+        // BR-EXAM: Cannot sit an exam without a national_id
+        if (empty($student->national_id)) {
+            $this->dispatch('notify', type: 'danger',
+                message: 'لا يمكن إجراء اختبار لطالب بدون رقم هوية. عدّل بياناته من لوحة الأدمن أولاً.');
+            return;
+        }
+
         $this->selectedStudentId = $studentId;
         $this->studentSearch     = '';
 
@@ -117,6 +130,7 @@ class ExamSession extends Component
 
     public function quickAddStudent(): void
     {
+        // BR-EXAM: From the examiner UI, national_id IS required (can't sit an exam without it).
         $this->validate([
             'add_national_id' => ['required', 'string', 'unique:students,national_id'],
             'add_first_name'  => ['required', 'string', 'max:50'],
@@ -124,7 +138,7 @@ class ExamSession extends Component
             'add_third_name'  => ['nullable', 'string', 'max:50'],
             'add_family_name' => ['required', 'string', 'max:50'],
         ], [
-            'add_national_id.required' => 'رقم الهوية مطلوب.',
+            'add_national_id.required' => 'رقم الهوية مطلوب لإجراء اختبار.',
             'add_national_id.unique'   => 'رقم الهوية موجود مسبقاً — ابحث عنه.',
             'add_first_name.required'  => 'الاسم الأول مطلوب.',
             'add_family_name.required' => 'اسم العائلة مطلوب.',

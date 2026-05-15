@@ -64,6 +64,7 @@
                 <table class="w-full text-sm">
                     <thead class="bg-neutral-50 border-b border-neutral-200">
                         <tr>
+                            <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
                             <th class="text-start px-4 py-3 text-neutral-600 font-medium">الطالب</th>
                             <th class="text-start px-4 py-3 text-neutral-600 font-medium">الرمز</th>
                             <th class="text-start px-4 py-3 text-neutral-600 font-medium">الحالة</th>
@@ -73,6 +74,7 @@
                     <tbody class="divide-y divide-neutral-100">
                         @forelse($permits as $permit)
                             <tr class="hover:bg-neutral-50">
+                                <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration }}</td>
                                 <td class="px-4 py-3">
                                     <p class="font-medium text-neutral-900">{{ $permit->student->fullName() }}</p>
                                 </td>
@@ -90,7 +92,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-4 py-6 text-center text-neutral-400">لا توجد أذونات</td>
+                                <td colspan="5" class="px-4 py-6 text-center text-neutral-400">لا توجد أذونات</td>
                             </tr>
                         @endforelse
                     </tbody>
