@@ -4,12 +4,12 @@ namespace App\Livewire\Examiner;
 
 use App\Enums\ExamSource;
 use App\Enums\ExamStatus;
-use App\Enums\ExamType;
 use App\Enums\UserRole;
 use App\Models\Exam;
 use App\Models\ExamQuestion;
 use App\Models\ReexamPermit;
 use App\Models\Student;
+use App\Models\SystemSetting;
 use App\Services\ScoreCalculator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -17,13 +17,14 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-// Flow: search → setup → question(1→2→3) → rulings → summary → saved → (reset)
+// Flow: search → setup → active (Alpine handles Q1/Q2/Q3 + rulings + summary entirely client-side) → saved
 #[Layout('layouts.app')]
 #[Title('جلسة الاختبار')]
 class ExamSession extends Component
 {
     // ── State machine ─────────────────────────────────────
-    public string $step = 'search'; // search|setup|question|rulings|summary|saved
+    // Server only knows 4 states; question/rulings/summary are client sub-states inside `active`
+    public string $step = 'search'; // search|setup|active|saved
 
     // ── Student selection ──────────────────────────────────
     public string $studentSearch     = '';
@@ -51,13 +52,6 @@ class ExamSession extends Component
         1 => ['errors_count' => 0, 'warnings_count' => 0, 'continuations_count' => 0, 'history' => []],
         2 => ['errors_count' => 0, 'warnings_count' => 0, 'continuations_count' => 0, 'history' => []],
         3 => ['errors_count' => 0, 'warnings_count' => 0, 'continuations_count' => 0, 'history' => []],
-    ];
-
-    // Map deduction button type → question array key
-    private const DEDUCTION_KEY = [
-        'error'        => 'errors_count',
-        'warning'      => 'warnings_count',
-        'continuation' => 'continuations_count',
     ];
 
     // ── Rulings ────────────────────────────────────────────
@@ -197,107 +191,43 @@ class ExamSession extends Component
 
         $this->examId          = $exam->id;
         $this->currentQuestion = 1;
+        $this->rulingsScore    = 0;
         $this->questions       = [
             1 => ['errors_count' => 0, 'warnings_count' => 0, 'continuations_count' => 0, 'history' => []],
             2 => ['errors_count' => 0, 'warnings_count' => 0, 'continuations_count' => 0, 'history' => []],
             3 => ['errors_count' => 0, 'warnings_count' => 0, 'continuations_count' => 0, 'history' => []],
         ];
-        $this->step = 'question';
+        $this->step = 'active';
     }
 
     // ──────────────────────────────────────────────────────
-    // Step: question — deduction buttons
+    // Active step — Alpine manages everything client-side (Q1/Q2/Q3 + rulings + summary)
+    // Server receives ONE sync payload every 20s with questions + rulings (BR-EXAM-08)
     // ──────────────────────────────────────────────────────
 
-    public function pressDeduction(string $type): void
+    public function syncExam(array $questions, float $rulingsScore = 0): void
     {
-        if (! isset(self::DEDUCTION_KEY[$type])) return;
-
-        $q = $this->questions[$this->currentQuestion];
-
-        // BR-EXAM-04: stop at zero
-        $currentScore = ScoreCalculator::questionScore(
-            $q['errors_count'],
-            $q['warnings_count'],
-            $q['continuations_count'],
-        );
-
-        $deductionAmounts = ['error' => 2, 'warning' => 1, 'continuation' => 0.5];
-        if ($currentScore - $deductionAmounts[$type] < 0) return;
-
-        $key                      = self::DEDUCTION_KEY[$type];
-        $q[$key]++;
-        $q['history'][]           = $type;
-        $this->questions[$this->currentQuestion] = $q;
-    }
-
-    public function pressUndo(): void
-    {
-        $q = $this->questions[$this->currentQuestion];
-
-        if (empty($q['history'])) return;
-
-        $lastAction = array_pop($q['history']);
-        $key        = self::DEDUCTION_KEY[$lastAction];
-        $q[$key]    = max(0, $q[$key] - 1);
-
-        $this->questions[$this->currentQuestion] = $q;
-    }
-
-    // BR-EXAM-05: per-type undo — removes the last deduction of a specific type
-    public function pressUndoType(string $type): void
-    {
-        if (! isset(self::DEDUCTION_KEY[$type])) return;
-
-        $q   = $this->questions[$this->currentQuestion];
-        $key = self::DEDUCTION_KEY[$type];
-
-        if ($q[$key] === 0) return;
-
-        // Remove the last occurrence of this type from history
-        for ($i = count($q['history']) - 1; $i >= 0; $i--) {
-            if ($q['history'][$i] === $type) {
-                array_splice($q['history'], $i, 1);
-                break;
-            }
+        foreach ($questions as $qNum => $q) {
+            $num = (int) $qNum;
+            if (! isset($this->questions[$num])) continue;
+            $this->questions[$num] = [
+                'errors_count'        => (int) ($q['errors_count'] ?? 0),
+                'warnings_count'      => (int) ($q['warnings_count'] ?? 0),
+                'continuations_count' => (int) ($q['continuations_count'] ?? 0),
+                'history'             => array_values($q['history'] ?? []),
+            ];
         }
 
-        $q[$key] = max(0, $q[$key] - 1);
-        $this->questions[$this->currentQuestion] = $q;
-    }
+        $this->rulingsScore = max(0, min(10, $rulingsScore));
 
-    public function nextQuestion(): void
-    {
-        $this->saveCurrentQuestionToDB();
-
-        if ($this->currentQuestion < 3) {
-            $this->currentQuestion++;
-        } else {
-            $this->step = 'rulings';
+        if ($this->examId) {
+            $this->saveAllQuestionsToDB();
+            Exam::where('id', $this->examId)->update(['rulings_score' => $this->rulingsScore]);
         }
     }
 
     // ──────────────────────────────────────────────────────
-    // Step: rulings
-    // ──────────────────────────────────────────────────────
-
-    public function submitRulings(): void
-    {
-        $this->validate([
-            'rulingsScore' => ['required', 'integer', 'min:0', 'max:10'],
-        ], [
-            'rulingsScore.required' => 'أدخل درجة الأحكام.',
-            'rulingsScore.min'      => 'درجة الأحكام لا تقل عن 0.',
-            'rulingsScore.max'      => 'درجة الأحكام لا تتجاوز 10.',
-        ]);
-
-        Exam::where('id', $this->examId)->update(['rulings_score' => $this->rulingsScore]);
-
-        $this->step = 'summary';
-    }
-
-    // ──────────────────────────────────────────────────────
-    // Step: summary → save
+    // Final save — only server call from active step
     // ──────────────────────────────────────────────────────
 
     public function saveExam(): void
@@ -306,7 +236,6 @@ class ExamSession extends Component
         $totalScore = ScoreCalculator::totalScore($this->questions, $this->rulingsScore);
         $isPassing  = ScoreCalculator::isPassing($totalScore);
 
-        // Save each question's final score
         foreach ($this->questions as $qNum => $q) {
             $finalScore = ScoreCalculator::questionScore(
                 $q['errors_count'],
@@ -340,17 +269,6 @@ class ExamSession extends Component
             ->update(['is_approved' => false]);
 
         $this->step = 'saved';
-    }
-
-    // ──────────────────────────────────────────────────────
-    // Auto-save (BR-EXAM-08: every 10 seconds on web)
-    // ──────────────────────────────────────────────────────
-
-    public function autosave(): void
-    {
-        if ($this->step === 'question' && $this->examId) {
-            $this->saveCurrentQuestionToDB();
-        }
     }
 
     // ──────────────────────────────────────────────────────
@@ -388,13 +306,6 @@ class ExamSession extends Component
     }
 
     #[Computed]
-    public function currentQuestionScore(): float
-    {
-        $q = $this->questions[$this->currentQuestion];
-        return ScoreCalculator::questionScore($q['errors_count'], $q['warnings_count'], $q['continuations_count']);
-    }
-
-    #[Computed]
     public function totalScore(): float
     {
         return ScoreCalculator::totalScore($this->questions, $this->rulingsScore);
@@ -413,7 +324,12 @@ class ExamSession extends Component
     public function render()
     {
         return view('livewire.examiner.exam-session', [
-            'examiner' => Auth::user(),
+            'examiner'        => Auth::user(),
+            'passingScore'    => (int) SystemSetting::get('passing_score', 60),
+            'scorePerQ'       => (int) config('exam.score_per_question', 30),
+            'errorDeduction'  => (float) config('exam.deductions.error', 2),
+            'warnDeduction'   => (float) config('exam.deductions.warning', 1),
+            'contDeduction'   => (float) config('exam.deductions.continuation', 0.5),
         ]);
     }
 
@@ -421,24 +337,22 @@ class ExamSession extends Component
     // Private helpers
     // ──────────────────────────────────────────────────────
 
-    private function saveCurrentQuestionToDB(): void
+    private function saveAllQuestionsToDB(): void
     {
-        if (! $this->examId) return;
-
-        $q = $this->questions[$this->currentQuestion];
-
-        ExamQuestion::where('exam_id', $this->examId)
-            ->where('question_number', $this->currentQuestion)
-            ->update([
-                'errors_count'        => $q['errors_count'],
-                'warnings_count'      => $q['warnings_count'],
-                'continuations_count' => $q['continuations_count'],
-                'final_score'         => ScoreCalculator::questionScore(
-                    $q['errors_count'],
-                    $q['warnings_count'],
-                    $q['continuations_count'],
-                ),
-            ]);
+        foreach ($this->questions as $qNum => $q) {
+            ExamQuestion::where('exam_id', $this->examId)
+                ->where('question_number', (int) $qNum)
+                ->update([
+                    'errors_count'        => $q['errors_count'],
+                    'warnings_count'      => $q['warnings_count'],
+                    'continuations_count' => $q['continuations_count'],
+                    'final_score'         => ScoreCalculator::questionScore(
+                        $q['errors_count'],
+                        $q['warnings_count'],
+                        $q['continuations_count'],
+                    ),
+                ]);
+        }
     }
 
     private function loadExam(Exam $exam): void
@@ -447,6 +361,7 @@ class ExamSession extends Component
         $this->selectedStudentId = $exam->student_id;
         $this->examType          = $exam->exam_type->value;
         $this->currentQuestion   = 1;
+        $this->rulingsScore      = (int) ($exam->rulings_score ?? 0);
 
         foreach ($exam->questions as $q) {
             $num = $q->question_number;
@@ -458,7 +373,7 @@ class ExamSession extends Component
             ];
         }
 
-        $this->step = 'question';
+        $this->step = 'active';
     }
 
     private function resetAddStudentForm(): void
