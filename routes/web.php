@@ -7,6 +7,7 @@ use App\Livewire\Admin\Students\Index as AdminStudents;
 use App\Livewire\Admin\Users\Index as AdminUsers;
 use App\Livewire\Auth\Login;
 use App\Livewire\Examiner\Dashboard as ExaminerDashboard;
+use App\Livewire\Examiner\ExamSession;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -18,7 +19,7 @@ Route::get('/', function () {
 
     return redirect(
         Auth::user()->role === UserRole::Examiner
-            ? route('examiner.dashboard')
+            ? route('examiner.exam')
             : route('admin.dashboard')
     );
 });
@@ -47,4 +48,5 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 // Examiner panel
 Route::middleware('auth')->prefix('examiner')->name('examiner.')->group(function () {
     Route::get('dashboard', ExaminerDashboard::class)->name('dashboard');
+    Route::get('exam',      ExamSession::class)->name('exam');
 });
