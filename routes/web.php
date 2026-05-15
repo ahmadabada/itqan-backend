@@ -8,6 +8,8 @@ use App\Livewire\Admin\Users\Index as AdminUsers;
 use App\Livewire\Auth\Login;
 use App\Livewire\Examiner\Dashboard as ExaminerDashboard;
 use App\Livewire\Examiner\ExamSession;
+use App\Livewire\Public\ResultQuery;
+use App\Http\Controllers\ResultPdfController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -50,3 +52,7 @@ Route::middleware('auth')->prefix('examiner')->name('examiner.')->group(function
     Route::get('dashboard', ExaminerDashboard::class)->name('dashboard');
     Route::get('exam',      ExamSession::class)->name('exam');
 });
+
+// Public — no auth required (BR-QUERY-01)
+Route::get('results',           ResultQuery::class)->name('public.results');
+Route::get('results/{exam}/pdf', ResultPdfController::class)->name('public.result-pdf');
