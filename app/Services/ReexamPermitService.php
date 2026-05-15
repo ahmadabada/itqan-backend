@@ -22,7 +22,7 @@ class ReexamPermitService
 
         return ReexamPermit::create([
             'student_id'  => $student->id,
-            'granted_by'  => Auth::id(),
+            'granted_by'  => Auth::user()->id,
             'permit_code' => $code,
             'signature'   => $signature,
             'is_used'     => false,

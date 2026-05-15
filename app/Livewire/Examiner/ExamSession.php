@@ -174,7 +174,7 @@ class ExamSession extends Component
 
         $exam = Exam::create([
             'student_id'     => $this->selectedStudentId,
-            'examiner_id'    => Auth::id(),
+            'examiner_id'    => Auth::user()->id,
             'exam_type'      => $this->examType,
             'source'         => ExamSource::Web,
             'status'         => ExamStatus::InProgress,

@@ -57,7 +57,7 @@ class Index extends Component
 
         // BR-AUDIT-02: Log permit grant
         AuditLog::create([
-            'user_id'     => Auth::id(),
+            'user_id'     => Auth::user()->id,
             'action'      => 'reexam_permit_granted',
             'target_type' => 'student',
             'target_id'   => $student->id,

@@ -148,7 +148,7 @@ class Index extends Component
         $student = Student::findOrFail($this->deleteStudentId);
 
         AuditLog::create([
-            'user_id'     => Auth::id(),
+            'user_id'     => Auth::user()->id,
             'action'      => 'student_deleted',
             'target_type' => 'student',
             'target_id'   => $student->id,
