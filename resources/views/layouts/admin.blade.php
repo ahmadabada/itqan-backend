@@ -32,11 +32,12 @@
             <nav class="flex-1 p-3 space-y-0.5">
                 @php
                     $navItems = [
-                        ['route' => 'admin.dashboard', 'label' => 'لوحة التحكم',   'pattern' => 'admin/dashboard'],
-                        ['route' => 'admin.users',     'label' => 'المستخدمون',     'pattern' => 'admin/users*'],
-                        ['route' => 'admin.students',  'label' => 'الطلاب',         'pattern' => 'admin/students*'],
-                        ['route' => 'admin.permits',   'label' => 'أذونات الإعادة', 'pattern' => 'admin/permits*'],
-                        ['route' => 'admin.settings',  'label' => 'الإعدادات',      'pattern' => 'admin/settings'],
+                        ['route' => 'admin.dashboard',      'label' => 'لوحة التحكم',      'pattern' => 'admin/dashboard'],
+                        ['route' => 'admin.users',          'label' => 'المستخدمون',        'pattern' => 'admin/users*'],
+                        ['route' => 'admin.students',       'label' => 'الطلاب',            'pattern' => 'admin/students*'],
+                        ['route' => 'admin.permits',        'label' => 'أذونات الإعادة',    'pattern' => 'admin/permits*'],
+                        ['route' => 'admin.exams.pending',  'label' => 'مراجعة التعارضات', 'pattern' => 'admin/exams/pending*'],
+                        ['route' => 'admin.settings',       'label' => 'الإعدادات',         'pattern' => 'admin/settings'],
                     ];
                 @endphp
 

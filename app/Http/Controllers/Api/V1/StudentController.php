@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\StoreStudentRequest;
 use App\Http\Resources\StudentResource;
 use App\Models\Exam;
 use App\Models\Student;
@@ -11,7 +12,7 @@ use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
-    // BR-SYNC-01: Returns all 600 students, supports delta sync via updated_since
+    // BR-SYNC-01: Returns all students, supports delta sync via updated_since
     public function index(Request $request): JsonResponse
     {
         $query = Student::query()->orderBy('family_name')->orderBy('first_name');
@@ -40,16 +41,8 @@ class StudentController extends Controller
     }
 
     // BR-STD-04: Examiner can add student manually
-    public function store(Request $request): JsonResponse
+    public function store(StoreStudentRequest $request): JsonResponse
     {
-        $request->validate([
-            'national_id'  => ['required', 'string'],
-            'first_name'   => ['required', 'string', 'max:50'],
-            'second_name'  => ['nullable', 'string', 'max:50'],
-            'third_name'   => ['nullable', 'string', 'max:50'],
-            'family_name'  => ['required', 'string', 'max:50'],
-        ]);
-
         // BR-STD-01: national_id must be unique
         $existing = Student::where('national_id', $request->national_id)->first();
         if ($existing) {
@@ -63,9 +56,7 @@ class StudentController extends Controller
             ], 409);
         }
 
-        $student = Student::create($request->only([
-            'national_id', 'first_name', 'second_name', 'third_name', 'family_name',
-        ]));
+        $student = Student::create($request->validated());
 
         return response()->json(['student' => new StudentResource($student)], 201);
     }

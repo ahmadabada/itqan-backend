@@ -2,6 +2,7 @@
 
 use App\Enums\UserRole;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
+use App\Livewire\Admin\Exams\PendingReview as AdminPendingReview;
 use App\Livewire\Admin\Permits\Index as AdminPermits;
 use App\Livewire\Admin\Settings\Index as AdminSettings;
 use App\Livewire\Admin\Students\Index as AdminStudents;
@@ -42,11 +43,12 @@ Route::post('logout', function () {
 
 // Admin panel (super_admin + admin)
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
-    Route::get('dashboard', AdminDashboard::class)->name('dashboard');
-    Route::get('users',     AdminUsers::class)->name('users');
-    Route::get('students',  AdminStudents::class)->name('students');
-    Route::get('permits',   AdminPermits::class)->name('permits');
-    Route::get('settings',  AdminSettings::class)->name('settings');
+    Route::get('dashboard',      AdminDashboard::class)->name('dashboard');
+    Route::get('users',          AdminUsers::class)->name('users');
+    Route::get('students',       AdminStudents::class)->name('students');
+    Route::get('permits',        AdminPermits::class)->name('permits');
+    Route::get('exams/pending',  AdminPendingReview::class)->name('exams.pending');
+    Route::get('settings',       AdminSettings::class)->name('settings');
 });
 
 // Examiner panel

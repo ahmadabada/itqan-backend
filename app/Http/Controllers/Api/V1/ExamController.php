@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\ExamSource;
 use App\Enums\ExamStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\CompleteExamRequest;
+use App\Http\Requests\Api\StartExamRequest;
+use App\Http\Requests\Api\UpdateProgressRequest;
 use App\Http\Resources\ExamResource;
 use App\Models\Exam;
 use App\Models\ExamQuestion;
@@ -16,14 +19,8 @@ use Illuminate\Http\Request;
 class ExamController extends Controller
 {
     // POST /exams/start
-    public function start(Request $request): JsonResponse
+    public function start(StartExamRequest $request): JsonResponse
     {
-        $request->validate([
-            'student_id'          => ['required', 'integer', 'exists:students,id'],
-            'exam_type'           => ['required', 'in:full_quran,half_quran'],
-            'reexam_permit_code'  => ['nullable', 'string'],
-        ]);
-
         $studentId = $request->student_id;
 
         // BR-REEX-01: Check if student has approved exam
@@ -45,7 +42,6 @@ class ExamController extends Controller
         }
 
         $attemptNumber = (Exam::where('student_id', $studentId)->max('attempt_number') ?? 0) + 1;
-        $deviceUuid    = $request->header('X-Device-UUID');
 
         $exam = Exam::create([
             'student_id'     => $studentId,
@@ -55,7 +51,7 @@ class ExamController extends Controller
             'status'         => ExamStatus::InProgress,
             'attempt_number' => $attemptNumber,
             'is_approved'    => false,
-            'device_uuid'    => $deviceUuid,
+            'device_uuid'    => $request->header('X-Device-UUID'),
             'started_at'     => now(),
         ]);
 
@@ -73,22 +69,13 @@ class ExamController extends Controller
         return response()->json(['exam' => new ExamResource($exam)], 201);
     }
 
-    // PATCH /exams/{id}/progress — BR-EXAM-08: auto-save from Flutter
-    public function updateProgress(Request $request, int $id): JsonResponse
+    // PATCH /exams/{exam}/progress — BR-EXAM-08: auto-save from Flutter
+    public function updateProgress(UpdateProgressRequest $request, Exam $exam): JsonResponse
     {
-        $request->validate([
-            'questions'                           => ['required', 'array'],
-            'questions.*.question_number'         => ['required', 'integer', 'between:1,3'],
-            'questions.*.errors_count'            => ['required', 'integer', 'min:0'],
-            'questions.*.warnings_count'          => ['required', 'integer', 'min:0'],
-            'questions.*.continuations_count'     => ['required', 'integer', 'min:0'],
-            'questions.*.final_score'             => ['required', 'numeric', 'min:0', 'max:30'],
-        ]);
-
-        $exam = Exam::where('id', $id)
-            ->where('examiner_id', $request->user()->id)
-            ->where('status', ExamStatus::InProgress)
-            ->firstOrFail();
+        abort_if(
+            $exam->examiner_id !== $request->user()->id || $exam->status !== ExamStatus::InProgress,
+            403
+        );
 
         foreach ($request->questions as $q) {
             ExamQuestion::where('exam_id', $exam->id)
@@ -108,23 +95,13 @@ class ExamController extends Controller
         ]);
     }
 
-    // POST /exams/{id}/complete
-    public function complete(Request $request, int $id): JsonResponse
+    // POST /exams/{exam}/complete
+    public function complete(CompleteExamRequest $request, Exam $exam): JsonResponse
     {
-        $request->validate([
-            'questions'                       => ['required', 'array', 'size:3'],
-            'questions.*.question_number'     => ['required', 'integer', 'between:1,3'],
-            'questions.*.errors_count'        => ['required', 'integer', 'min:0'],
-            'questions.*.warnings_count'      => ['required', 'integer', 'min:0'],
-            'questions.*.continuations_count' => ['required', 'integer', 'min:0'],
-            'questions.*.final_score'         => ['required', 'numeric', 'min:0', 'max:30'],
-            'rulings_score'                   => ['required', 'numeric', 'min:0', 'max:10'],
-        ]);
-
-        $exam = Exam::where('id', $id)
-            ->where('examiner_id', $request->user()->id)
-            ->where('status', ExamStatus::InProgress)
-            ->firstOrFail();
+        abort_if(
+            $exam->examiner_id !== $request->user()->id || $exam->status !== ExamStatus::InProgress,
+            403
+        );
 
         foreach ($request->questions as $q) {
             ExamQuestion::where('exam_id', $exam->id)
@@ -148,12 +125,12 @@ class ExamController extends Controller
 
         // BR-CONF-01: Auto-approve if no conflict
         $exam->update([
-            'status'       => ExamStatus::Approved,
+            'status'        => ExamStatus::Approved,
             'rulings_score' => $request->rulings_score,
-            'total_score'  => $totalScore,
-            'is_passed'    => $isPassing,
-            'is_approved'  => true,
-            'completed_at' => now(),
+            'total_score'   => $totalScore,
+            'is_passed'     => $isPassing,
+            'is_approved'   => true,
+            'completed_at'  => now(),
         ]);
 
         // BR-REEX-08: One approved per student
@@ -162,15 +139,13 @@ class ExamController extends Controller
             ->where('is_approved', true)
             ->update(['is_approved' => false]);
 
-        return response()->json(['exam' => new ExamResource($exam)]);
+        return response()->json(['exam' => new ExamResource($exam->fresh())]);
     }
 
-    // GET /exams/{id}
-    public function show(Request $request, int $id): JsonResponse
+    // GET /exams/{exam}
+    public function show(Exam $exam): JsonResponse
     {
-        $exam = Exam::with(['student', 'examiner', 'questions'])->findOrFail($id);
-
-        return response()->json(['exam' => new ExamResource($exam)]);
+        return response()->json(['exam' => new ExamResource($exam->load(['student', 'examiner', 'questions']))]);
     }
 
     // GET /exams/in-progress — BR-EXAM-09

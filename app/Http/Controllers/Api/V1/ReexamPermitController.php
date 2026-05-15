@@ -3,20 +3,15 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\VerifyPermitRequest;
 use App\Models\ReexamPermit;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class ReexamPermitController extends Controller
 {
     // POST /reexam-permits/verify
-    public function verify(Request $request): JsonResponse
+    public function verify(VerifyPermitRequest $request): JsonResponse
     {
-        $request->validate([
-            'permit_code' => ['required', 'string'],
-            'student_id'  => ['required', 'integer'],
-        ]);
-
         $permit = ReexamPermit::where('permit_code', $request->permit_code)->first();
 
         if (! $permit) {
@@ -26,7 +21,7 @@ class ReexamPermitController extends Controller
             ], 404);
         }
 
-        // BR-REEX-04: permit is single-use
+        // BR-REEX-04: single-use
         if ($permit->is_used) {
             return response()->json([
                 'error'   => 'permit_already_used',
@@ -34,7 +29,7 @@ class ReexamPermitController extends Controller
             ], 409);
         }
 
-        // BR-REEX-05: permit has an expiry date
+        // BR-REEX-05: expiry
         if (! $permit->expires_at->isFuture()) {
             return response()->json([
                 'error'   => 'permit_expired',
@@ -55,19 +50,20 @@ class ReexamPermitController extends Controller
         ]);
     }
 
-    // GET /reexam-permits/active — BR-REEX-03: Flutter fetches for offline verification
-    public function active(Request $request): JsonResponse
+    // GET /reexam-permits/active — BR-REEX-03: Flutter fetches for offline HMAC verification
+    public function active(): JsonResponse
     {
         $permits = ReexamPermit::where('is_used', false)
             ->where('expires_at', '>', now())
+            ->latest()
             ->get(['student_id', 'permit_code', 'signature', 'expires_at']);
 
         return response()->json([
             'permits' => $permits->map(fn($p) => [
-                'student_id' => $p->student_id,
+                'student_id'  => $p->student_id,
                 'permit_code' => $p->permit_code,
-                'signature'  => $p->signature,
-                'expires_at' => $p->expires_at->toISOString(),
+                'signature'   => $p->signature,
+                'expires_at'  => $p->expires_at->toISOString(),
             ]),
         ]);
     }

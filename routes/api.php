@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     // Auth — login is public, the rest require a token
-    Route::post('auth/login', [AuthController::class, 'login']);
+    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:api-auth');
 
     Route::middleware('auth:sanctum')->group(function () {
 
@@ -21,13 +21,12 @@ Route::prefix('v1')->group(function () {
         Route::get('students', [StudentController::class, 'index']);
         Route::post('students', [StudentController::class, 'store']);
 
-        // Exams (BR-EXAM-08, BR-EXAM-09, BR-CONF-01)
-        // /exams/in-progress must come before /exams/{id} to avoid "in-progress" being treated as an id
+        // Exams — /in-progress before /{exam} to prevent "in-progress" being bound as model id
         Route::post('exams/start', [ExamController::class, 'start']);
         Route::get('exams/in-progress', [ExamController::class, 'inProgress']);
-        Route::get('exams/{id}', [ExamController::class, 'show']);
-        Route::patch('exams/{id}/progress', [ExamController::class, 'updateProgress']);
-        Route::post('exams/{id}/complete', [ExamController::class, 'complete']);
+        Route::get('exams/{exam}', [ExamController::class, 'show']);
+        Route::patch('exams/{exam}/progress', [ExamController::class, 'updateProgress']);
+        Route::post('exams/{exam}/complete', [ExamController::class, 'complete']);
 
         // Re-exam Permits (BR-REEX-02, BR-REEX-03)
         Route::post('reexam-permits/verify', [ReexamPermitController::class, 'verify']);

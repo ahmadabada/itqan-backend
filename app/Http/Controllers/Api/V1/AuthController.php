@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\LoginRequest;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,15 +13,8 @@ class AuthController extends Controller
 {
     // BR-AUTH-01: Login via national_id + password
     // BR-AUTH-02: Token lifetime = SANCTUM_TOKEN_EXPIRATION minutes (30 days)
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'national_id' => ['required', 'string'],
-            'password'    => ['required', 'string'],
-            'device_uuid' => ['required', 'string', 'max:64'],
-            'device_name' => ['required', 'string', 'max:100'],
-        ]);
-
         if (! Auth::attempt(['national_id' => $request->national_id, 'password' => $request->password])) {
             return response()->json([
                 'error'   => 'invalid_credentials',
@@ -48,7 +42,7 @@ class AuthController extends Controller
             $expiresAt,
         );
 
-        $user->forceFill(['last_login_at' => now()])->save();
+        defer(fn () => $user->forceFill(['last_login_at' => now()])->save());
 
         return response()->json([
             'token'      => $token->plainTextToken,
