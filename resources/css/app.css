@@ -1,11 +1,61 @@
 @import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+@custom-variant dark (&:where(.dark, .dark *));
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    /* === Primary - أزرق الإتقان الأكاديمي === */
+    --color-primary-50:  #E6F0F7;
+    --color-primary-100: #CCE1EF;
+    --color-primary-200: #99C3DF;
+    --color-primary-300: #66A5CF;
+    --color-primary-400: #3387BF;
+    --color-primary-500: #024A7D;
+    --color-primary-600: #023F6B;
+    --color-primary-700: #013559;
+    --color-primary-800: #012A47;
+    --color-primary-900: #011F36;
+
+    /* === Secondary - ذهبي القرآن === */
+    --color-secondary-50:  #FAF6EE;
+    --color-secondary-100: #F2E8D4;
+    --color-secondary-200: #E5D2A9;
+    --color-secondary-300: #D7BB7E;
+    --color-secondary-400: #CAA453;
+    --color-secondary-500: #B08D5C;
+    --color-secondary-600: #967649;
+    --color-secondary-700: #7C6037;
+    --color-secondary-800: #624A26;
+    --color-secondary-900: #483518;
+
+    /* === Semantic === */
+    --color-success-50:  #F0FDF4;
+    --color-success-500: #16A34A;
+    --color-success-700: #15803D;
+    --color-danger-50:   #FEF2F2;
+    --color-danger-500:  #DC2626;
+    --color-danger-700:  #B91C1C;
+    --color-warning-50:  #FFFBEB;
+    --color-warning-500: #F59E0B;
+    --color-warning-700: #B45309;
+
+    /* === Exam-specific (BR-EXAM-*) === */
+    --color-exam-error:        #DC2626;
+    --color-exam-warning:      #F59E0B;
+    --color-exam-continuation: #0891B2;
+    --color-exam-undo:         #71717A;
+
+    /* === Typography === */
+    --font-sans: 'Tajawal', system-ui, sans-serif;
+}
+
+/* RTL global setup */
+html {
+    direction: rtl;
+    font-feature-settings: "kern", "liga";
 }
