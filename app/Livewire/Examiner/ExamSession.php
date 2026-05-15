@@ -244,6 +244,28 @@ class ExamSession extends Component
         $this->questions[$this->currentQuestion] = $q;
     }
 
+    // BR-EXAM-05: per-type undo — removes the last deduction of a specific type
+    public function pressUndoType(string $type): void
+    {
+        if (! isset(self::DEDUCTION_KEY[$type])) return;
+
+        $q   = $this->questions[$this->currentQuestion];
+        $key = self::DEDUCTION_KEY[$type];
+
+        if ($q[$key] === 0) return;
+
+        // Remove the last occurrence of this type from history
+        for ($i = count($q['history']) - 1; $i >= 0; $i--) {
+            if ($q['history'][$i] === $type) {
+                array_splice($q['history'], $i, 1);
+                break;
+            }
+        }
+
+        $q[$key] = max(0, $q[$key] - 1);
+        $this->questions[$this->currentQuestion] = $q;
+    }
+
     public function nextQuestion(): void
     {
         $this->saveCurrentQuestionToDB();

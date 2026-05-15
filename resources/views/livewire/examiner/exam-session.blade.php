@@ -202,46 +202,63 @@
             </div>
         </div>
 
-        {{-- Deduction buttons --}}
-        <div class="grid grid-cols-2 gap-4 w-full max-w-sm">
+        {{-- Deduction buttons with per-type undo --}}
+        <div class="flex flex-col gap-3 w-full max-w-sm">
 
-            <button
-                wire:click="pressDeduction('error')"
-                class="bg-exam-error text-white rounded-2xl py-6 text-center shadow-sm hover:opacity-90 active:scale-95 transition-all"
-            >
-                <div class="text-2xl font-black">خطأ</div>
-                <div class="text-sm opacity-80 mt-0.5">-2 درجة</div>
-            </button>
+            {{-- Error --}}
+            <div class="flex items-center gap-2">
+                <button
+                    wire:click="pressDeduction('error')"
+                    class="flex-1 flex items-center justify-between px-5 py-4 rounded-2xl border-2 border-exam-error bg-white hover:bg-red-50 active:scale-[0.98] transition-all"
+                >
+                    <span class="text-2xl font-black text-exam-error">-2</span>
+                    <span class="text-lg font-bold text-exam-error">خطأ جلي</span>
+                </button>
+                <button
+                    wire:click="pressUndoType('error')"
+                    @disabled($q['errors_count'] === 0)
+                    class="w-12 h-12 rounded-xl border-2 flex items-center justify-center text-lg font-bold transition-all
+                        {{ $q['errors_count'] > 0 ? 'border-exam-error text-exam-error hover:bg-red-50 active:scale-95' : 'border-neutral-200 text-neutral-300 cursor-not-allowed' }}"
+                >↩</button>
+            </div>
 
-            <button
-                wire:click="pressDeduction('warning')"
-                class="bg-exam-warning text-white rounded-2xl py-6 text-center shadow-sm hover:opacity-90 active:scale-95 transition-all"
-            >
-                <div class="text-2xl font-black">تنبيه</div>
-                <div class="text-sm opacity-80 mt-0.5">-1 درجة</div>
-            </button>
+            {{-- Warning --}}
+            <div class="flex items-center gap-2">
+                <button
+                    wire:click="pressDeduction('warning')"
+                    class="flex-1 flex items-center justify-between px-5 py-4 rounded-2xl border-2 border-exam-warning bg-white hover:bg-amber-50 active:scale-[0.98] transition-all"
+                >
+                    <span class="text-2xl font-black text-exam-warning">-1</span>
+                    <span class="text-lg font-bold text-exam-warning">تنبيه / تردد</span>
+                </button>
+                <button
+                    wire:click="pressUndoType('warning')"
+                    @disabled($q['warnings_count'] === 0)
+                    class="w-12 h-12 rounded-xl border-2 flex items-center justify-center text-lg font-bold transition-all
+                        {{ $q['warnings_count'] > 0 ? 'border-exam-warning text-exam-warning hover:bg-amber-50 active:scale-95' : 'border-neutral-200 text-neutral-300 cursor-not-allowed' }}"
+                >↩</button>
+            </div>
 
-            <button
-                wire:click="pressDeduction('continuation')"
-                class="bg-exam-continuation text-white rounded-2xl py-6 text-center shadow-sm hover:opacity-90 active:scale-95 transition-all"
-            >
-                <div class="text-2xl font-black">استرسال</div>
-                <div class="text-sm opacity-80 mt-0.5">-0.5 درجة</div>
-            </button>
-
-            @php $hasHistory = ! empty($q['history']); @endphp
-            <button
-                wire:click="pressUndo"
-                class="rounded-2xl py-6 text-center shadow-sm transition-all {{ $hasHistory ? 'bg-exam-undo text-white hover:opacity-90 active:scale-95' : 'bg-neutral-100 text-neutral-300 cursor-not-allowed' }}"
-                @if(! $hasHistory) disabled @endif
-            >
-                <div class="text-2xl font-black">تراجع</div>
-                <div class="text-sm opacity-80 mt-0.5">Undo</div>
-            </button>
+            {{-- Continuation --}}
+            <div class="flex items-center gap-2">
+                <button
+                    wire:click="pressDeduction('continuation')"
+                    class="flex-1 flex items-center justify-between px-5 py-4 rounded-2xl border-2 border-exam-continuation bg-white hover:bg-cyan-50 active:scale-[0.98] transition-all"
+                >
+                    <span class="text-2xl font-black text-exam-continuation">-0.5</span>
+                    <span class="text-lg font-bold text-exam-continuation">استرسال خاطئ</span>
+                </button>
+                <button
+                    wire:click="pressUndoType('continuation')"
+                    @disabled($q['continuations_count'] === 0)
+                    class="w-12 h-12 rounded-xl border-2 flex items-center justify-center text-lg font-bold transition-all
+                        {{ $q['continuations_count'] > 0 ? 'border-exam-continuation text-exam-continuation hover:bg-cyan-50 active:scale-95' : 'border-neutral-200 text-neutral-300 cursor-not-allowed' }}"
+                >↩</button>
+            </div>
 
         </div>
 
-        <flux:button wire:click="nextQuestion" variant="primary" size="lg" class="w-full max-w-sm">
+        <flux:button wire:click="nextQuestion" variant="primary" size="base" class="w-full max-w-sm">
             {{ $currentQuestion < 3 ? 'السؤال التالي ←' : 'الانتقال للأحكام ←' }}
         </flux:button>
 
@@ -379,7 +396,7 @@
                 {{ number_format($this->totalScore, 1) }} / 100
             </p>
 
-            <flux:button wire:click="resetSession" variant="primary" size="lg">
+            <flux:button wire:click="resetSession" variant="primary" size="base">
                 اختبار طالب آخر
             </flux:button>
 
