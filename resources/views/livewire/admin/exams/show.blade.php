@@ -28,8 +28,9 @@
                     <span class="text-xs px-2 py-0.5 rounded-full {{ $sc['bg'] }} {{ $sc['text'] }} border {{ $sc['border'] }}">
                         {{ $exam->status?->label() }}
                     </span>
-                    @if($exam->is_approved)
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">معتمد</span>
+                    {{-- BR-REEX-08: an "approved" status with is_approved=false means a newer attempt has replaced it --}}
+                    @if($exam->status?->value === 'approved' && ! $exam->is_approved)
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">محاولة سابقة</span>
                     @endif
                 </div>
                 <p class="text-sm text-neutral-500">

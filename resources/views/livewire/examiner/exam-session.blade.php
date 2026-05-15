@@ -102,7 +102,7 @@
                     <form wire:submit="quickAddStudent" class="space-y-3">
                         <flux:field>
                             <flux:label>رقم الهوية</flux:label>
-                            <flux:input wire:model="add_national_id" type="text" inputmode="numeric" />
+                            <flux:input wire:model="add_national_id" type="text" inputmode="numeric" maxlength="9" placeholder="9 أرقام" />
                             <flux:error name="add_national_id" />
                         </flux:field>
                         <div class="grid grid-cols-2 gap-3">
@@ -125,6 +125,21 @@
                                 <flux:error name="add_family_name" />
                             </flux:field>
                         </div>
+                        @php $examinerGender = auth()->user()->gender?->value; @endphp
+                        <flux:field>
+                            <flux:label>الجنس</flux:label>
+                            <flux:select wire:model="add_gender" placeholder="اختر الجنس">
+                                @if($examinerGender === 'male')
+                                    <flux:select.option value="male">ذكر</flux:select.option>
+                                @elseif($examinerGender === 'female')
+                                    <flux:select.option value="female">أنثى</flux:select.option>
+                                @endif
+                            </flux:select>
+                            <flux:error name="add_gender" />
+                            <p class="text-[10px] text-neutral-400 mt-1">
+                                الإضافة محصورة بـ {{ $examinerGender === 'male' ? 'الذكور' : 'الإناث' }} لأنك مختبر{{ $examinerGender === 'female' ? 'ة' : '' }}.
+                            </p>
+                        </flux:field>
                         <flux:button type="submit" variant="primary" class="w-full">إضافة وبدء الاختبار</flux:button>
                     </form>
                 </div>
@@ -142,8 +157,17 @@
 
             <div class="bg-primary-50 rounded-xl px-5 py-4 mb-6 text-center">
                 <p class="text-xl font-bold text-primary-800">{{ $this->selectedStudent?->fullName() }}</p>
-                <p class="text-sm text-primary-500 mt-0.5">{{ $this->selectedStudent?->national_id }}</p>
+                <p class="text-sm text-primary-500 mt-0.5 font-mono">
+                    {{ $this->selectedStudent?->national_id ?? 'بدون رقم هوية' }}
+                </p>
             </div>
+
+            @if($this->selectedStudent && empty($this->selectedStudent->national_id))
+                <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-5">
+                    <p class="text-sm font-bold text-amber-800 mb-1">⚠️ هذا الطالب بلا رقم هوية</p>
+                    <p class="text-xs text-amber-700">أدخل رقم هويته أدناه ليتم حفظه على بياناته قبل البدء.</p>
+                </div>
+            @endif
 
             @if($needsPermit)
                 <div class="bg-warning-50 border border-warning-200 rounded-xl px-5 py-4 mb-6">
@@ -153,6 +177,20 @@
             @endif
 
             <form wire:submit="startExam" class="space-y-5">
+
+                @if($this->selectedStudent && empty($this->selectedStudent->national_id))
+                    <flux:field>
+                        <flux:label>رقم الهوية</flux:label>
+                        <flux:input
+                            wire:model="inlineNationalId"
+                            type="text"
+                            inputmode="numeric"
+                            maxlength="9"
+                            placeholder="9 أرقام"
+                        />
+                        <flux:error name="inlineNationalId" />
+                    </flux:field>
+                @endif
 
                 <flux:field>
                     <flux:label>نوع الاختبار</flux:label>
@@ -178,7 +216,7 @@
                 @endif
 
                 <div class="flex gap-3 pt-2">
-                    <flux:button type="button" wire:click="$set('step', 'search')" variant="ghost" class="flex-1">
+                    <flux:button type="button" wire:click="$set('step', 'search')" variant="outline" class="flex-1">
                         رجوع
                     </flux:button>
                     <flux:button type="submit" variant="primary" class="flex-1">
@@ -529,25 +567,17 @@
                 <h2 class="text-xl font-bold text-neutral-800 tracking-tight">ملخص الاختبار</h2>
             </div>
 
-            {{-- Total score card (live computed) --}}
+            {{-- Total score card (live computed — neutral colors, no pass/fail indication) --}}
             <div class="w-full rounded-[2rem] overflow-hidden ring-1 ring-white
-                        shadow-[0_10px_40px_-12px_rgba(0,0,0,0.1)]"
-                 :class="isPassing ? 'bg-gradient-to-br from-success-50/70 via-white to-success-100/40' : 'bg-gradient-to-br from-danger-50/70 via-white to-danger-100/40'">
+                        shadow-[0_10px_40px_-12px_rgba(0,0,0,0.1)]
+                        bg-gradient-to-br from-primary-50/70 via-white to-primary-100/40">
                 <div class="py-7 text-center relative">
                     <div class="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent pointer-events-none"></div>
                     <div class="relative">
-                        <p class="text-[11px] uppercase tracking-widest font-semibold mb-2"
-                           :class="isPassing ? 'text-success-700/70' : 'text-danger-600/70'">المجموع</p>
-                        <p class="text-7xl font-black tabular-nums leading-none mb-1"
-                           :class="isPassing ? 'text-success-700' : 'text-danger-600'"
+                        <p class="text-[11px] uppercase tracking-widest font-semibold mb-2 text-primary-700/70">المجموع</p>
+                        <p class="text-7xl font-black tabular-nums leading-none mb-1 text-primary-700"
                            x-text="total.toFixed(1)"></p>
-                        <p class="text-xs font-medium mt-1"
-                           :class="isPassing ? 'text-success-600/80' : 'text-danger-500/80'">من 100</p>
-                        <div class="mt-4">
-                            <span class="inline-block px-5 py-1.5 rounded-full text-sm font-bold shadow-sm"
-                                  :class="isPassing ? 'bg-success-500 text-white' : 'bg-danger-500 text-white'"
-                                  x-text="isPassing ? '✓ مجاز' : '✗ غير مجاز'"></span>
-                        </div>
+                        <p class="text-xs font-medium mt-1 text-primary-600/80">من 100</p>
                     </div>
                 </div>
             </div>
@@ -619,15 +649,13 @@
     <div class="flex-1 flex items-center justify-center p-6">
         <div class="text-center max-w-sm">
 
-            <div class="w-20 h-20 rounded-full {{ $this->isPassing ? 'bg-success-50' : 'bg-danger-50' }} flex items-center justify-center mx-auto mb-4">
-                <span class="text-3xl {{ $this->isPassing ? 'text-success-500' : 'text-danger-500' }}">
-                    {{ $this->isPassing ? '✓' : '✗' }}
-                </span>
+            <div class="w-20 h-20 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-4">
+                <span class="text-3xl text-primary-500">✓</span>
             </div>
 
             <h2 class="text-2xl font-bold text-neutral-900 mb-1">تم حفظ الاختبار</h2>
             <p class="text-neutral-500 mb-2">{{ $this->selectedStudent?->fullName() }}</p>
-            <p class="text-3xl font-black {{ $this->isPassing ? 'text-success-600' : 'text-danger-500' }} mb-8">
+            <p class="text-3xl font-black text-primary-600 mb-8">
                 {{ number_format($this->totalScore, 1) }} / 100
             </p>
 

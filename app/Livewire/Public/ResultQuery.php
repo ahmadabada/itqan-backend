@@ -38,9 +38,10 @@ class ResultQuery extends Component
         if (! $this->queryEnabled) return;
 
         $this->validate([
-            'national_id' => ['required', 'string'],
+            'national_id' => ['required', 'digits:9'],
         ], [
             'national_id.required' => 'رقم الهوية مطلوب.',
+            'national_id.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
         ]);
 
         $this->student = Student::where('national_id', $this->national_id)->first();

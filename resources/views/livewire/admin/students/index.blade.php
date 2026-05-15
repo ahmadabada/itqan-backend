@@ -123,7 +123,8 @@
                             wire:model="form_national_id"
                             type="text"
                             inputmode="numeric"
-                            placeholder="اتركه فارغاً إذا لم يتوفّر"
+                            maxlength="9"
+                            placeholder="9 أرقام — أو اتركه فارغاً"
                         />
                         <flux:error name="form_national_id" />
                     </flux:field>
@@ -155,7 +156,6 @@
                     <flux:field>
                         <flux:label>الجنس</flux:label>
                         <flux:select wire:model="form_gender" placeholder="اختر الجنس">
-                            <flux:select.option value="">— غير محدد —</flux:select.option>
                             <flux:select.option value="male">ذكر</flux:select.option>
                             <flux:select.option value="female">أنثى</flux:select.option>
                         </flux:select>
@@ -163,7 +163,7 @@
                     </flux:field>
 
                     <div class="flex justify-end gap-3 pt-2">
-                        <flux:button type="button" wire:click="$set('showFormModal', false)" variant="ghost">
+                        <flux:button type="button" wire:click="$set('showFormModal', false)" variant="outline">
                             إلغاء
                         </flux:button>
                         <flux:button type="submit" variant="primary">
@@ -184,7 +184,7 @@
                 <h3 class="text-lg font-bold text-neutral-900 mb-2">تأكيد الحذف</h3>
                 <p class="text-sm text-neutral-500 mb-5">سيتم حذف بيانات الطالب نهائياً. لا يمكن التراجع.</p>
                 <div class="flex gap-3">
-                    <flux:button wire:click="$set('deleteStudentId', null)" variant="ghost" class="flex-1">إلغاء</flux:button>
+                    <flux:button wire:click="$set('deleteStudentId', null)" variant="outline" class="flex-1">إلغاء</flux:button>
                     <flux:button wire:click="deleteStudent" variant="danger" class="flex-1">حذف</flux:button>
                 </div>
             </div>

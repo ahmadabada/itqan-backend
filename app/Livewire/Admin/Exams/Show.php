@@ -15,7 +15,7 @@ class Show extends Component
 {
     public Exam $exam;
 
-    public function mount(int $exam): void
+    public function mount(Exam $exam): void
     {
         $user = Auth::user();
         if ($user->role === UserRole::Examiner) {
@@ -23,8 +23,7 @@ class Show extends Component
             return;
         }
 
-        $this->exam = Exam::with(['student', 'examiner', 'questions', 'reexamPermit'])
-            ->findOrFail($exam);
+        $this->exam = $exam->load(['student', 'examiner', 'questions', 'reexamPermit']);
     }
 
     public function render()

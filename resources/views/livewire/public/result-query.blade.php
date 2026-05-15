@@ -20,7 +20,8 @@
                     wire:model="national_id"
                     type="text"
                     inputmode="numeric"
-                    placeholder="أدخل رقم هويتك الوطنية"
+                    maxlength="9"
+                    placeholder="9 أرقام"
                     autofocus
                 />
                 <flux:error name="national_id" />

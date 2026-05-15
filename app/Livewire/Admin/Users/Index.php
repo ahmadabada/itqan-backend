@@ -28,6 +28,7 @@ class Index extends Component
     public string $form_second_name  = '';
     public string $form_third_name   = '';
     public string $form_family_name  = '';
+    public string $form_gender       = '';
     public string $form_role         = '';
     public string $form_password     = '';
 
@@ -71,18 +72,21 @@ class Index extends Component
             : [UserRole::Examiner->value]; // BR-USR-04
 
         $this->validate([
-            'form_national_id' => ['required', 'string', 'unique:users,national_id'],
+            'form_national_id' => ['required', 'digits:9', 'unique:users,national_id'],
             'form_first_name'  => ['required', 'string', 'max:50'],
             'form_second_name' => ['nullable', 'string', 'max:50'],
             'form_third_name'  => ['nullable', 'string', 'max:50'],
             'form_family_name' => ['required', 'string', 'max:50'],
+            'form_gender'      => ['required', 'in:male,female'],
             'form_role'        => ['required', 'in:' . implode(',', $allowedRoles)],
             'form_password'    => ['required', 'string', 'min:8'],
         ], [
             'form_national_id.required' => 'رقم الهوية مطلوب.',
+            'form_national_id.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
             'form_national_id.unique'   => 'رقم الهوية مسجّل مسبقاً.',
             'form_first_name.required'  => 'الاسم الأول مطلوب.',
             'form_family_name.required' => 'اسم العائلة مطلوب.',
+            'form_gender.required'      => 'الجنس مطلوب.',
             'form_role.required'        => 'الدور مطلوب.',
             'form_role.in'              => 'الدور غير مسموح به.',
             'form_password.required'    => 'كلمة المرور مطلوبة.',
@@ -95,6 +99,7 @@ class Index extends Component
             'second_name'   => $this->form_second_name ?: null,
             'third_name'    => $this->form_third_name ?: null,
             'family_name'   => $this->form_family_name,
+            'gender'        => $this->form_gender,
             'role'          => $this->form_role,
             'password_hash' => $this->form_password,
             'is_active'     => true,
@@ -196,12 +201,35 @@ class Index extends Component
         // BR-USR-01: Super admin cannot be deleted
         if ($target->is_super_admin) {
             $this->deleteUserId = null;
+            $this->dispatch('notify', type: 'danger', message: 'لا يمكن حذف السوبر أدمن.');
             return;
         }
 
         // BR-USR-02: Only super admin deletes admins
         if ($target->role === UserRole::Admin && ! $currentUser->isSuperAdmin()) {
             $this->deleteUserId = null;
+            $this->dispatch('notify', type: 'danger', message: 'فقط السوبر أدمن يحذف الأدمنز.');
+            return;
+        }
+
+        // Cannot self-delete
+        if ($target->id === $currentUser->id) {
+            $this->deleteUserId = null;
+            $this->dispatch('notify', type: 'danger', message: 'لا يمكنك حذف حسابك.');
+            return;
+        }
+
+        // BR-USR-08: Preserve historical records — refuse delete if user has any
+        // related exams, granted permits, or audit logs. Suggest disabling instead.
+        $blockers = [];
+        if ($target->exams()->exists())          $blockers[] = 'اختبارات';
+        if ($target->grantedPermits()->exists()) $blockers[] = 'أذونات إعادة';
+        if ($target->auditLogs()->exists())      $blockers[] = 'سجلات تدقيق';
+
+        if (! empty($blockers)) {
+            $this->deleteUserId = null;
+            $this->dispatch('notify', type: 'danger',
+                message: 'لا يمكن الحذف — هذا المستخدم له سجل (' . implode('، ', $blockers) . '). عطّله بدلاً من الحذف للحفاظ على السجلات.');
             return;
         }
 
@@ -256,6 +284,7 @@ class Index extends Component
         $this->form_second_name = '';
         $this->form_third_name  = '';
         $this->form_family_name = '';
+        $this->form_gender      = '';
         $this->form_role        = '';
         $this->form_password    = '';
         $this->resetValidation();

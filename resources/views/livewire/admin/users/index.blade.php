@@ -34,6 +34,7 @@
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">رقم الهوية</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الاسم</th>
+                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">الجنس</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الدور</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الحالة</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">آخر دخول</th>
@@ -46,6 +47,15 @@
                         <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration }}</td>
                         <td class="px-4 py-3 font-mono text-neutral-700">{{ $user->national_id }}</td>
                         <td class="px-4 py-3 font-medium text-neutral-900">{{ $user->fullName() }}</td>
+                        <td class="px-4 py-3">
+                            @if($user->gender)
+                                <span class="text-xs px-2 py-0.5 rounded-full {{ $user->gender->value === 'male' ? 'bg-sky-50 text-sky-700' : 'bg-pink-50 text-pink-700' }}">
+                                    {{ $user->gender->label() }}
+                                </span>
+                            @else
+                                <span class="text-xs text-neutral-300">—</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3">
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
                                 {{ $user->is_super_admin ? 'bg-secondary-100 text-secondary-700' : ($user->role === \App\Enums\UserRole::Admin ? 'bg-primary-50 text-primary-700' : 'bg-neutral-100 text-neutral-600') }}">
@@ -99,7 +109,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-neutral-400">
+                        <td colspan="8" class="px-4 py-8 text-center text-neutral-400">
                             لا يوجد مستخدمون
                         </td>
                     </tr>
@@ -123,7 +133,7 @@
                     <div class="grid grid-cols-2 gap-4">
                         <flux:field>
                             <flux:label>رقم الهوية</flux:label>
-                            <flux:input wire:model="form_national_id" type="text" inputmode="numeric" />
+                            <flux:input wire:model="form_national_id" type="text" inputmode="numeric" maxlength="9" placeholder="9 أرقام" />
                             <flux:error name="form_national_id" />
                         </flux:field>
 
@@ -164,13 +174,22 @@
                     </div>
 
                     <flux:field>
+                        <flux:label>الجنس</flux:label>
+                        <flux:select wire:model="form_gender" placeholder="اختر الجنس">
+                            <flux:select.option value="male">ذكر</flux:select.option>
+                            <flux:select.option value="female">أنثى</flux:select.option>
+                        </flux:select>
+                        <flux:error name="form_gender" />
+                    </flux:field>
+
+                    <flux:field>
                         <flux:label>كلمة المرور المؤقتة</flux:label>
                         <flux:input wire:model="form_password" type="text" viewable />
                         <flux:error name="form_password" />
                     </flux:field>
 
                     <div class="flex justify-end gap-3 pt-2">
-                        <flux:button type="button" wire:click="$set('showCreateModal', false)" variant="ghost">
+                        <flux:button type="button" wire:click="$set('showCreateModal', false)" variant="outline">
                             إلغاء
                         </flux:button>
                         <flux:button type="submit" variant="primary">
@@ -201,7 +220,7 @@
                         {{ $generatedPassword }}
                     </div>
                     <div class="flex justify-end gap-3">
-                        <flux:button wire:click="$set('showResetModal', false)" variant="ghost">
+                        <flux:button wire:click="$set('showResetModal', false)" variant="outline">
                             إلغاء
                         </flux:button>
                         <flux:button wire:click="confirmResetPassword" variant="primary">
@@ -228,7 +247,7 @@
                 </div>
 
                 <div class="flex gap-3 px-6 pb-5">
-                    <flux:button wire:click="$set('deleteUserId', null)" variant="ghost" class="flex-1">
+                    <flux:button wire:click="$set('deleteUserId', null)" variant="outline" class="flex-1">
                         إلغاء
                     </flux:button>
                     <flux:button wire:click="deleteUser" variant="danger" class="flex-1">

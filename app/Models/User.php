@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Gender;
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -11,7 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['national_id', 'first_name', 'second_name', 'third_name', 'family_name', 'password_hash', 'role', 'is_active'])]
+#[Fillable(['national_id', 'first_name', 'second_name', 'third_name', 'family_name', 'gender', 'password_hash', 'role', 'is_active'])]
 #[Hidden(['password_hash', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -51,6 +52,7 @@ class User extends Authenticatable
     {
         return [
             'role'           => UserRole::class,
+            'gender'         => Gender::class,
             'is_super_admin' => 'boolean',
             'is_active'      => 'boolean',
             'last_login_at'  => 'datetime',

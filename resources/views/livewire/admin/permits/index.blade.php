@@ -42,7 +42,7 @@
                 </div>
 
                 <div class="flex gap-3">
-                    <flux:button wire:click="clearGrant" variant="ghost" class="flex-1">إلغاء</flux:button>
+                    <flux:button wire:click="clearGrant" variant="outline" class="flex-1">إلغاء</flux:button>
                     <flux:button wire:click="grantPermit" variant="primary" class="flex-1">منح الإذن</flux:button>
                 </div>
 

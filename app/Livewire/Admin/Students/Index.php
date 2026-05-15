@@ -88,11 +88,11 @@ class Index extends Component
     {
         $currentUser = Auth::user();
 
-        // National ID is optional, but unique when provided.
+        // National ID is optional, but if provided must be 9 digits and unique.
         // Required at exam time (enforced in Examiner\ExamSession::startExam).
         $nationalIdRule = $this->editStudentId
-            ? ['nullable', 'string', 'unique:students,national_id,' . $this->editStudentId]
-            : ['nullable', 'string', 'unique:students,national_id'];
+            ? ['nullable', 'digits:9', 'unique:students,national_id,' . $this->editStudentId]
+            : ['nullable', 'digits:9', 'unique:students,national_id'];
 
         $this->validate([
             'form_national_id' => $nationalIdRule,
@@ -100,11 +100,13 @@ class Index extends Component
             'form_second_name' => ['nullable', 'string', 'max:50'],
             'form_third_name'  => ['nullable', 'string', 'max:50'],
             'form_family_name' => ['required', 'string', 'max:50'],
-            'form_gender'      => ['nullable', 'in:male,female'],
+            'form_gender'      => ['required', 'in:male,female'],
         ], [
+            'form_national_id.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
             'form_national_id.unique'   => 'رقم الهوية مسجّل مسبقاً.',
             'form_first_name.required'  => 'الاسم الأول مطلوب.',
             'form_family_name.required' => 'اسم العائلة مطلوب.',
+            'form_gender.required'      => 'الجنس مطلوب.',
         ]);
 
         $data = [

@@ -21,7 +21,7 @@ class Login extends Component
     protected function rules(): array
     {
         return [
-            'national_id' => ['required', 'string'],
+            'national_id' => ['required', 'digits:9'],
             'password'    => ['required', 'string'],
         ];
     }
@@ -30,6 +30,7 @@ class Login extends Component
     {
         return [
             'national_id.required' => 'رقم الهوية مطلوب.',
+            'national_id.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
             'password.required'    => 'كلمة المرور مطلوبة.',
         ];
     }

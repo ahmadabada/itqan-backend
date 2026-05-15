@@ -38,11 +38,13 @@ class ExamSession extends Component
     public string $add_second_name  = '';
     public string $add_third_name   = '';
     public string $add_family_name  = '';
+    public string $add_gender       = '';
 
     // ── Exam setup ─────────────────────────────────────────
-    public string $examType    = '';
-    public bool   $needsPermit = false;
-    public string $permitCode  = '';
+    public string $examType        = '';
+    public bool   $needsPermit     = false;
+    public string $permitCode      = '';
+    public string $inlineNationalId = ''; // populated when selected student has no national_id
 
     // ── Active exam ────────────────────────────────────────
     public ?int $examId          = null;
@@ -91,7 +93,12 @@ class ExamSession extends Component
     {
         if (mb_strlen($this->studentSearch) < 2) return [];
 
-        $query = Student::query();
+        $examinerGender = Auth::user()->gender?->value;
+
+        $query = Student::query()
+            // BR: Examiners only see/assess students of the same gender
+            ->where('gender', $examinerGender);
+
         ArabicSearch::applyTo(
             $query,
             $this->studentSearch,
@@ -104,21 +111,24 @@ class ExamSession extends Component
 
     public function selectStudent(int $studentId): void
     {
-        $student = Student::find($studentId);
+        $student        = Student::find($studentId);
+        $examinerGender = Auth::user()->gender?->value;
+
         if (! $student) {
             $this->dispatch('notify', type: 'danger', message: 'الطالب غير موجود.');
             return;
         }
 
-        // BR-EXAM: Cannot sit an exam without a national_id
-        if (empty($student->national_id)) {
+        // BR: Examiners can only assess students of the same gender
+        if ($student->gender?->value !== $examinerGender) {
             $this->dispatch('notify', type: 'danger',
-                message: 'لا يمكن إجراء اختبار لطالب بدون رقم هوية. عدّل بياناته من لوحة الأدمن أولاً.');
+                message: 'لا يمكن إجراء اختبار لطالب من جنس مختلف.');
             return;
         }
 
         $this->selectedStudentId = $studentId;
         $this->studentSearch     = '';
+        $this->inlineNationalId  = ''; // examiner will fill it in setup if missing
 
         // BR-REEX-01: Re-exam needs a permit if student has an approved exam
         $this->needsPermit = Exam::where('student_id', $studentId)
@@ -130,18 +140,27 @@ class ExamSession extends Component
 
     public function quickAddStudent(): void
     {
+        $examinerGender = Auth::user()->gender?->value;
+
         // BR-EXAM: From the examiner UI, national_id IS required (can't sit an exam without it).
+        // Gender must match the examiner's gender — examiners can only test same-gender students.
         $this->validate([
-            'add_national_id' => ['required', 'string', 'unique:students,national_id'],
+            'add_national_id' => ['required', 'digits:9', 'unique:students,national_id'],
             'add_first_name'  => ['required', 'string', 'max:50'],
             'add_second_name' => ['nullable', 'string', 'max:50'],
             'add_third_name'  => ['nullable', 'string', 'max:50'],
             'add_family_name' => ['required', 'string', 'max:50'],
+            'add_gender'      => ['required', 'in:' . $examinerGender],
         ], [
             'add_national_id.required' => 'رقم الهوية مطلوب لإجراء اختبار.',
+            'add_national_id.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
             'add_national_id.unique'   => 'رقم الهوية موجود مسبقاً — ابحث عنه.',
             'add_first_name.required'  => 'الاسم الأول مطلوب.',
             'add_family_name.required' => 'اسم العائلة مطلوب.',
+            'add_gender.required'      => 'الجنس مطلوب.',
+            'add_gender.in'            => $examinerGender === 'male'
+                ? 'لا يمكنك إضافة طالبة — الإضافة محصورة بالذكور.'
+                : 'لا يمكنك إضافة طالب ذكر — الإضافة محصورة بالإناث.',
         ]);
 
         $student = Student::create([
@@ -150,6 +169,7 @@ class ExamSession extends Component
             'second_name'  => $this->add_second_name ?: null,
             'third_name'   => $this->add_third_name ?: null,
             'family_name'  => $this->add_family_name,
+            'gender'       => $this->add_gender,
         ]);
 
         $this->resetAddStudentForm();
@@ -162,6 +182,22 @@ class ExamSession extends Component
 
     public function startExam(): void
     {
+        $student = Student::findOrFail($this->selectedStudentId);
+
+        // BR-EXAM: a student MUST have a national_id to sit an exam.
+        // If missing, validate + save the inline-entered ID before continuing.
+        if (empty($student->national_id)) {
+            $this->validate([
+                'inlineNationalId' => ['required', 'digits:9', 'unique:students,national_id'],
+            ], [
+                'inlineNationalId.required' => 'رقم الهوية مطلوب لإجراء الاختبار.',
+                'inlineNationalId.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
+                'inlineNationalId.unique'   => 'رقم الهوية مسجّل لطالب آخر.',
+            ]);
+
+            $student->update(['national_id' => $this->inlineNationalId]);
+        }
+
         $this->validate([
             'examType' => ['required', 'in:full_quran,half_quran'],
         ], [
@@ -303,6 +339,7 @@ class ExamSession extends Component
         $this->examType          = '';
         $this->needsPermit       = false;
         $this->permitCode        = '';
+        $this->inlineNationalId  = '';
         $this->examId            = null;
         $this->currentQuestion   = 1;
         $this->rulingsScore      = 0;
@@ -402,6 +439,7 @@ class ExamSession extends Component
         $this->add_second_name = '';
         $this->add_third_name  = '';
         $this->add_family_name = '';
+        $this->add_gender      = '';
         $this->showAddStudent  = false;
     }
 }

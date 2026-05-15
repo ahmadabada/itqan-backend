@@ -24,11 +24,13 @@
                         id="national_id"
                         type="text"
                         inputmode="numeric"
+                        pattern="\d{9}"
+                        maxlength="9"
                         wire:model="national_id"
-                        placeholder="أدخل رقم الهوية الوطنية"
+                        placeholder="9 أرقام"
                         autocomplete="username"
                         autofocus
-                        class="w-full ps-12 pe-4 py-3.5 text-base font-medium
+                        class="w-full ps-12 pe-4 py-3.5 text-base font-medium tabular-nums
                                bg-neutral-50/70 text-neutral-900 placeholder:text-neutral-400
                                border-2 border-neutral-200 rounded-2xl
                                focus:bg-white focus:border-primary-400 focus:ring-4 focus:ring-primary-100

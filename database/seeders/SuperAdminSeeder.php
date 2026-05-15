@@ -21,6 +21,7 @@ class SuperAdminSeeder extends Seeder
             'national_id'    => '408454700',
             'first_name'     => 'أحمد',
             'family_name'    => 'أبو عبادة',
+            'gender'         => 'male',
             'password_hash'  => Hash::make('ahmad@etqan2654**'),
             'role'           => UserRole::SuperAdmin,
             'is_super_admin' => true,

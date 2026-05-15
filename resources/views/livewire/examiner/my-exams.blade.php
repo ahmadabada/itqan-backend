@@ -99,7 +99,7 @@
 
                 <div class="text-end flex-shrink-0">
                     @if($exam->total_score !== null)
-                        <p class="text-2xl font-black {{ $exam->is_passed ? 'text-success-600' : 'text-danger-500' }}">
+                        <p class="text-2xl font-black tabular-nums text-primary-700">
                             {{ number_format($exam->total_score, 1) }}
                         </p>
                         <p class="text-xs text-neutral-400">/ 100</p>
