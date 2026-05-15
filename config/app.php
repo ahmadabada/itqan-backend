@@ -15,6 +15,9 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    // BR-REEX-02: HMAC secret shared with Flutter for offline permit verification
+    'reexam_hmac_secret' => env('REEXAM_HMAC_SECRET', ''),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

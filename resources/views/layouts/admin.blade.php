@@ -35,6 +35,7 @@
                         ['route' => 'admin.dashboard', 'label' => 'لوحة التحكم',   'pattern' => 'admin/dashboard'],
                         ['route' => 'admin.users',     'label' => 'المستخدمون',     'pattern' => 'admin/users*'],
                         ['route' => 'admin.students',  'label' => 'الطلاب',         'pattern' => 'admin/students*'],
+                        ['route' => 'admin.permits',   'label' => 'أذونات الإعادة', 'pattern' => 'admin/permits*'],
                         ['route' => 'admin.settings',  'label' => 'الإعدادات',      'pattern' => 'admin/settings'],
                     ];
                 @endphp
