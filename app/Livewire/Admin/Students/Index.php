@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Students;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\Student;
+use App\Services\ArabicSearch;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -177,11 +178,12 @@ class Index extends Component
     public function render()
     {
         $students = Student::query()
-            ->when($this->search, fn($q) => $q->where(function ($q2) {
-                $q2->where('national_id', 'like', "%{$this->search}%")
-                   ->orWhere('first_name',  'like', "%{$this->search}%")
-                   ->orWhere('family_name', 'like', "%{$this->search}%");
-            }))
+            ->when($this->search, fn($q) => ArabicSearch::applyTo(
+                $q,
+                $this->search,
+                ['first_name', 'second_name', 'third_name', 'family_name'],
+                ['national_id'],
+            ))
             ->when($this->genderFilter, fn($q) => $q->where('gender', $this->genderFilter))
             ->orderBy('family_name')
             ->orderBy('first_name')

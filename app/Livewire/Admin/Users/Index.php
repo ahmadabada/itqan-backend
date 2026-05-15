@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Users;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\ArabicSearch;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -227,11 +228,12 @@ class Index extends Component
         $currentUser = Auth::user();
 
         $users = User::query()
-            ->when($this->search, fn($q) => $q->where(function ($q2) {
-                $q2->where('national_id', 'like', "%{$this->search}%")
-                   ->orWhere('first_name',   'like', "%{$this->search}%")
-                   ->orWhere('family_name',  'like', "%{$this->search}%");
-            }))
+            ->when($this->search, fn($q) => ArabicSearch::applyTo(
+                $q,
+                $this->search,
+                ['first_name', 'second_name', 'third_name', 'family_name'],
+                ['national_id'],
+            ))
             ->when($this->filterRole, fn($q) => $q->where('role', $this->filterRole))
             ->orderByDesc('created_at')
             ->get();

@@ -6,6 +6,7 @@ use App\Enums\ExamStatus;
 use App\Enums\UserRole;
 use App\Models\Exam;
 use App\Models\User;
+use App\Services\ArabicSearch;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -82,9 +83,12 @@ class Index extends Component
         $exams = Exam::query()
             ->with(['student', 'examiner'])
             ->when($this->search, fn($q) => $q->whereHas('student', fn($s) =>
-                $s->where('national_id', 'like', "%{$this->search}%")
-                  ->orWhere('first_name',  'like', "%{$this->search}%")
-                  ->orWhere('family_name', 'like', "%{$this->search}%")
+                ArabicSearch::applyTo(
+                    $s,
+                    $this->search,
+                    ['first_name', 'second_name', 'third_name', 'family_name'],
+                    ['national_id'],
+                )
             ))
             ->when($this->statusFilter, fn($q) => $q->where('status', $this->statusFilter))
             ->when($this->examinerFilter, fn($q) => $q->where('examiner_id', $this->examinerFilter))

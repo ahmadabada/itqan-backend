@@ -10,6 +10,7 @@ use App\Models\ExamQuestion;
 use App\Models\ReexamPermit;
 use App\Models\Student;
 use App\Models\SystemSetting;
+use App\Services\ArabicSearch;
 use App\Services\ScoreCalculator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -88,13 +89,17 @@ class ExamSession extends Component
     #[Computed]
     public function searchResults(): array
     {
-        if (strlen($this->studentSearch) < 2) return [];
+        if (mb_strlen($this->studentSearch) < 2) return [];
 
-        return Student::where(fn($q) =>
-            $q->where('national_id', 'like', "%{$this->studentSearch}%")
-              ->orWhere('first_name',  'like', "%{$this->studentSearch}%")
-              ->orWhere('family_name', 'like', "%{$this->studentSearch}%")
-        )->limit(10)->get()->toArray();
+        $query = Student::query();
+        ArabicSearch::applyTo(
+            $query,
+            $this->studentSearch,
+            ['first_name', 'second_name', 'third_name', 'family_name'],
+            ['national_id'],
+        );
+
+        return $query->limit(10)->get()->toArray();
     }
 
     public function selectStudent(int $studentId): void
