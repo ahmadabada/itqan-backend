@@ -17,7 +17,8 @@ class Index extends Component
 {
     use WithPagination;
 
-    public string $search = '';
+    public string $search       = '';
+    public string $genderFilter = '';
 
     // Create/edit modal
     public bool   $showFormModal  = false;
@@ -27,6 +28,7 @@ class Index extends Component
     public string $form_second_name  = '';
     public string $form_third_name   = '';
     public string $form_family_name  = '';
+    public string $form_gender       = '';
 
     // Delete
     public ?int $deleteStudentId = null;
@@ -40,6 +42,11 @@ class Index extends Component
     }
 
     public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingGenderFilter(): void
     {
         $this->resetPage();
     }
@@ -68,6 +75,7 @@ class Index extends Component
         $this->form_second_name  = $student->second_name ?? '';
         $this->form_third_name   = $student->third_name ?? '';
         $this->form_family_name  = $student->family_name;
+        $this->form_gender       = $student->gender?->value ?? '';
         $this->showFormModal     = true;
     }
 
@@ -89,6 +97,7 @@ class Index extends Component
             'form_second_name' => ['nullable', 'string', 'max:50'],
             'form_third_name'  => ['nullable', 'string', 'max:50'],
             'form_family_name' => ['required', 'string', 'max:50'],
+            'form_gender'      => ['nullable', 'in:male,female'],
         ], [
             'form_national_id.required' => 'رقم الهوية مطلوب.',
             'form_national_id.unique'   => 'رقم الهوية مسجّل مسبقاً.',
@@ -102,6 +111,7 @@ class Index extends Component
             'second_name'  => $this->form_second_name ?: null,
             'third_name'   => $this->form_third_name ?: null,
             'family_name'  => $this->form_family_name,
+            'gender'       => $this->form_gender ?: null,
         ];
 
         if ($this->editStudentId) {
@@ -172,6 +182,7 @@ class Index extends Component
                    ->orWhere('first_name',  'like', "%{$this->search}%")
                    ->orWhere('family_name', 'like', "%{$this->search}%");
             }))
+            ->when($this->genderFilter, fn($q) => $q->where('gender', $this->genderFilter))
             ->orderBy('family_name')
             ->orderBy('first_name')
             ->paginate(25);
@@ -187,6 +198,7 @@ class Index extends Component
         $this->form_second_name = '';
         $this->form_third_name  = '';
         $this->form_family_name = '';
+        $this->form_gender      = '';
         $this->resetValidation();
     }
 }

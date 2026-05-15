@@ -1,32 +1,39 @@
-<div class="p-8">
+<div class="p-4 sm:p-6 lg:p-8">
 
     {{-- Header --}}
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h2 class="text-2xl font-bold text-neutral-900">الطلاب</h2>
-            <p class="text-neutral-500 text-sm mt-0.5">{{ $students->total() }} طالب مسجّل</p>
+    <div class="flex items-center justify-between mb-5 sm:mb-6 gap-3">
+        <div class="min-w-0">
+            <h2 class="text-xl sm:text-2xl font-bold text-neutral-900">الطلاب</h2>
+            <p class="text-neutral-500 text-xs sm:text-sm mt-0.5">{{ $students->total() }} طالب مسجّل</p>
         </div>
         <flux:button wire:click="openCreateModal" variant="primary" size="sm">
             إضافة طالب
         </flux:button>
     </div>
 
-    {{-- Search --}}
-    <div class="mb-5">
+    {{-- Filters --}}
+    <div class="mb-5 flex items-center gap-3 flex-wrap">
         <flux:input
             wire:model.live.debounce.300ms="search"
             placeholder="بحث بالاسم أو رقم الهوية..."
             class="max-w-xs"
         />
+        <flux:select wire:model.live="genderFilter" placeholder="كل الأجناس" class="max-w-[160px]">
+            <flux:select.option value="">كل الأجناس</flux:select.option>
+            <flux:select.option value="male">ذكر</flux:select.option>
+            <flux:select.option value="female">أنثى</flux:select.option>
+        </flux:select>
     </div>
 
     {{-- Table --}}
     <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="w-full text-sm min-w-[600px]">
             <thead class="bg-neutral-50 border-b border-neutral-200">
                 <tr>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">رقم الهوية</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الاسم الكامل</th>
+                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">الجنس</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الاختبارات</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الإجراءات</th>
                 </tr>
@@ -36,6 +43,15 @@
                     <tr class="hover:bg-neutral-50 transition-colors">
                         <td class="px-4 py-3 font-mono text-neutral-700">{{ $student->national_id }}</td>
                         <td class="px-4 py-3 font-medium text-neutral-900">{{ $student->fullName() }}</td>
+                        <td class="px-4 py-3">
+                            @if($student->gender)
+                                <span class="text-xs px-2 py-0.5 rounded-full {{ $student->gender->value === 'male' ? 'bg-sky-50 text-sky-700' : 'bg-pink-50 text-pink-700' }}">
+                                    {{ $student->gender->label() }}
+                                </span>
+                            @else
+                                <span class="text-xs text-neutral-300">—</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-neutral-500">
                             {{ $student->exams()->count() }} اختبار
                         </td>
@@ -58,7 +74,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="px-4 py-8 text-center text-neutral-400">
+                        <td colspan="5" class="px-4 py-8 text-center text-neutral-400">
                             @if($search)
                                 لا توجد نتائج للبحث عن "{{ $search }}"
                             @else
@@ -69,6 +85,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
 
         {{-- Pagination --}}
         @if($students->hasPages())
@@ -126,6 +143,16 @@
                             <flux:error name="form_family_name" />
                         </flux:field>
                     </div>
+
+                    <flux:field>
+                        <flux:label>الجنس</flux:label>
+                        <flux:select wire:model="form_gender" placeholder="اختر الجنس">
+                            <flux:select.option value="">— غير محدد —</flux:select.option>
+                            <flux:select.option value="male">ذكر</flux:select.option>
+                            <flux:select.option value="female">أنثى</flux:select.option>
+                        </flux:select>
+                        <flux:error name="form_gender" />
+                    </flux:field>
 
                     <div class="flex justify-end gap-3 pt-2">
                         <flux:button type="button" wire:click="$set('showFormModal', false)" variant="ghost">
