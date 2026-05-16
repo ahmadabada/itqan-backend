@@ -112,11 +112,11 @@
                                 <flux:error name="add_first_name" />
                             </flux:field>
                             <flux:field>
-                                <flux:label>الاسم الثاني</flux:label>
+                                <flux:label>الاسم الثاني <span class="text-neutral-400 text-xs font-normal">(اختياري)</span></flux:label>
                                 <flux:input wire:model="add_second_name" type="text" />
                             </flux:field>
                             <flux:field>
-                                <flux:label>الاسم الثالث</flux:label>
+                                <flux:label>الاسم الثالث <span class="text-neutral-400 text-xs font-normal">(اختياري)</span></flux:label>
                                 <flux:input wire:model="add_third_name" type="text" />
                             </flux:field>
                             <flux:field>

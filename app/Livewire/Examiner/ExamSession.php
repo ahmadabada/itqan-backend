@@ -289,7 +289,6 @@ class ExamSession extends Component
     {
         $exam       = Exam::findOrFail($this->examId);
         $totalScore = ScoreCalculator::totalScore($this->questions, $this->rulingsScore);
-        $isPassing  = ScoreCalculator::isPassing($totalScore);
 
         foreach ($this->questions as $qNum => $q) {
             $finalScore = ScoreCalculator::questionScore(
@@ -312,7 +311,6 @@ class ExamSession extends Component
         $exam->update([
             'status'       => ExamStatus::Approved,
             'total_score'  => $totalScore,
-            'is_passed'    => $isPassing,
             'is_approved'  => true,
             'completed_at' => now(),
         ]);

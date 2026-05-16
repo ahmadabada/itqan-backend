@@ -62,7 +62,6 @@ class SyncService
             'attempt_number'   => $attemptNumber,
             'rulings_score'    => $data['rulings_score'],
             'total_score'      => $data['total_score'],
-            'is_passed'        => $data['is_passed'],
             'is_approved'      => $isApproved,
             'device_uuid'      => $data['device_uuid'],
             'reexam_permit_id' => $permitId,

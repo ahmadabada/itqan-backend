@@ -121,14 +121,12 @@ class ExamController extends Controller
         ], $request->questions);
 
         $totalScore = ScoreCalculator::totalScore($questionsForCalc, $request->rulings_score);
-        $isPassing  = ScoreCalculator::isPassing($totalScore);
 
         // BR-CONF-01: Auto-approve if no conflict
         $exam->update([
             'status'        => ExamStatus::Approved,
             'rulings_score' => $request->rulings_score,
             'total_score'   => $totalScore,
-            'is_passed'     => $isPassing,
             'is_approved'   => true,
             'completed_at'  => now(),
         ]);

@@ -6,6 +6,9 @@ use App\Models\SystemSetting;
 
 class ScoreCalculator
 {
+    // Cached per request to avoid N+1 when Exam::is_passed accessor runs in list views.
+    private static ?int $cachedPassingScore = null;
+
     // BR-EXAM-02: question score = max(0, 30 - deductions)
     public static function questionScore(int $errors, int $warnings, int $continuations): float
     {
@@ -30,10 +33,21 @@ class ScoreCalculator
         return round($total + $rulingsScore, 2);
     }
 
-    // BR-EXAM-07: passing = total >= passing_score setting
+    // BR-EXAM-07: passing = total >= passing_score setting (evaluated live, not frozen)
     public static function isPassing(float $score): bool
     {
-        $passingScore = (int) SystemSetting::get('passing_score', 60);
-        return $score >= $passingScore;
+        static::$cachedPassingScore ??= (int) SystemSetting::get('passing_score', 60);
+        return $score >= static::$cachedPassingScore;
+    }
+
+    public static function passingScore(): int
+    {
+        return static::$cachedPassingScore ??= (int) SystemSetting::get('passing_score', 60);
+    }
+
+    // Call after admin updates the passing_score setting to invalidate the per-request cache.
+    public static function clearPassingScoreCache(): void
+    {
+        static::$cachedPassingScore = null;
     }
 }

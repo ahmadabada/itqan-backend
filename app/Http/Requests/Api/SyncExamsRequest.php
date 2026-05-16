@@ -23,7 +23,10 @@ class SyncExamsRequest extends FormRequest
             'exams.*.exam_type'                       => ['required', 'in:full_quran,half_quran'],
             'exams.*.rulings_score'                   => ['required', 'numeric', 'min:0', 'max:10'],
             'exams.*.total_score'                     => ['required', 'numeric', 'min:0', 'max:100'],
-            'exams.*.is_passed'                       => ['required', 'boolean'],
+            // is_passed is no longer used server-side — it's computed live from total_score
+            // against the current passing_score setting. Field stays accepted for backward
+            // compatibility with older Flutter builds but is ignored.
+            'exams.*.is_passed'                       => ['nullable', 'boolean'],
             'exams.*.started_at'                      => ['required', 'date'],
             'exams.*.completed_at'                    => ['required', 'date'],
             'exams.*.device_uuid'                     => ['required', 'string'],

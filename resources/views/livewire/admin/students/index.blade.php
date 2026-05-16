@@ -136,14 +136,14 @@
                             <flux:error name="form_first_name" />
                         </flux:field>
                         <flux:field>
-                            <flux:label>الاسم الثاني</flux:label>
+                            <flux:label>الاسم الثاني <span class="text-neutral-400 text-xs font-normal">(اختياري)</span></flux:label>
                             <flux:input wire:model="form_second_name" type="text" />
                         </flux:field>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <flux:field>
-                            <flux:label>الاسم الثالث</flux:label>
+                            <flux:label>الاسم الثالث <span class="text-neutral-400 text-xs font-normal">(اختياري)</span></flux:label>
                             <flux:input wire:model="form_third_name" type="text" />
                         </flux:field>
                         <flux:field>

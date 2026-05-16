@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ExamSource;
 use App\Enums\ExamStatus;
 use App\Enums\ExamType;
+use App\Services\ScoreCalculator;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'student_id', 'examiner_id', 'exam_type', 'attempt_number',
-    'rulings_score', 'total_score', 'is_passed', 'is_approved',
+    'rulings_score', 'total_score', 'is_approved',
     'status', 'source', 'device_uuid', 'reexam_permit_id',
     'conflict_reason', 'started_at', 'completed_at', 'synced_at',
 ])]
@@ -26,12 +27,21 @@ class Exam extends Model
             'source'         => ExamSource::class,
             'rulings_score'  => 'decimal:2',
             'total_score'    => 'decimal:2',
-            'is_passed'      => 'boolean',
             'is_approved'    => 'boolean',
             'started_at'     => 'datetime',
             'completed_at'   => 'datetime',
             'synced_at'      => 'datetime',
         ];
+    }
+
+    // Computed live from the current passing_score setting — never stored.
+    // Why: when admin raises the threshold, historical exams must reflect the new rule.
+    public function getIsPassedAttribute(): ?bool
+    {
+        if ($this->total_score === null) {
+            return null;
+        }
+        return ScoreCalculator::isPassing((float) $this->total_score);
     }
 
     public function student(): BelongsTo

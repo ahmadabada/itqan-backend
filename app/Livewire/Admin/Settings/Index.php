@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Settings;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\SystemSetting;
+use App\Services\ScoreCalculator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -71,6 +72,10 @@ class Index extends Component
             'old_values'  => $old,
             'new_values'  => $updates,
         ]);
+
+        // Drop the per-request passing-score cache so the new threshold is reflected
+        // immediately on the same request (e.g. when re-rendering exam lists).
+        ScoreCalculator::clearPassingScoreCache();
 
         $this->dispatch('notify', type: 'success', message: 'تم حفظ الإعدادات بنجاح.');
     }
