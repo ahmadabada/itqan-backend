@@ -7,6 +7,9 @@
 
     <title>{{ $title ?? 'واجهة المختبر' }} | أكاديمية الإتقان</title>
 
+    <link rel="icon" type="image/png" href="{{ asset('images/photoshop-light.png') }}" media="(prefers-color-scheme: light)">
+    <link rel="icon" type="image/png" href="{{ asset('images/photoshop-dark.png') }}" media="(prefers-color-scheme: dark)">
+
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=tajawal:400,500,700,900&display=swap" rel="stylesheet">
 
