@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'student_id', 'examiner_id', 'exam_type', 'attempt_number',
+    'student_id', 'examiner_id', 'exam_type', 'selected_groups', 'attempt_number',
     'rulings_score', 'total_score', 'is_approved',
     'status', 'source', 'device_uuid', 'reexam_permit_id',
     'conflict_reason', 'started_at', 'completed_at', 'synced_at',
@@ -22,15 +22,16 @@ class Exam extends Model
     protected function casts(): array
     {
         return [
-            'exam_type'      => ExamType::class,
-            'status'         => ExamStatus::class,
-            'source'         => ExamSource::class,
-            'rulings_score'  => 'decimal:2',
-            'total_score'    => 'decimal:2',
-            'is_approved'    => 'boolean',
-            'started_at'     => 'datetime',
-            'completed_at'   => 'datetime',
-            'synced_at'      => 'datetime',
+            'exam_type'       => ExamType::class,
+            'status'          => ExamStatus::class,
+            'source'          => ExamSource::class,
+            'selected_groups' => 'array',
+            'rulings_score'   => 'decimal:2',
+            'total_score'     => 'decimal:2',
+            'is_approved'     => 'boolean',
+            'started_at'      => 'datetime',
+            'completed_at'    => 'datetime',
+            'synced_at'       => 'datetime',
         ];
     }
 
