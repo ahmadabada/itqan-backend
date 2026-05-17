@@ -22,6 +22,7 @@ Route::prefix('v1')->group(function () {
         Route::post('students', [StudentController::class, 'store']);
 
         // Exams — /in-progress before /{exam} to prevent "in-progress" being bound as model id
+        Route::post('exams/preview-questions', [ExamController::class, 'previewQuestions']);
         Route::post('exams/start', [ExamController::class, 'start']);
         Route::get('exams/in-progress', [ExamController::class, 'inProgress']);
         Route::get('exams/{exam}', [ExamController::class, 'show']);

@@ -4,22 +4,26 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\ExamSource;
 use App\Enums\ExamStatus;
+use App\Enums\ExamType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CompleteExamRequest;
 use App\Http\Requests\Api\StartExamRequest;
 use App\Http\Requests\Api\UpdateProgressRequest;
 use App\Http\Resources\ExamResource;
+use App\Http\Resources\RecitationQuestionResource;
 use App\Models\Exam;
 use App\Models\ExamQuestion;
 use App\Models\ReexamPermit;
+use App\Services\ExamQuestionPicker;
 use App\Services\ScoreCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ExamController extends Controller
 {
     // POST /exams/start
-    public function start(StartExamRequest $request): JsonResponse
+    public function start(StartExamRequest $request, ExamQuestionPicker $picker): JsonResponse
     {
         $studentId = $request->student_id;
 
@@ -41,32 +45,81 @@ class ExamController extends Controller
             $permit->update(['is_used' => true, 'used_at' => now()]);
         }
 
-        $attemptNumber = (Exam::where('student_id', $studentId)->max('attempt_number') ?? 0) + 1;
-
-        $exam = Exam::create([
-            'student_id'     => $studentId,
-            'examiner_id'    => $request->user()->id,
-            'exam_type'      => $request->exam_type,
-            'source'         => ExamSource::Flutter,
-            'status'         => ExamStatus::InProgress,
-            'attempt_number' => $attemptNumber,
-            'is_approved'    => false,
-            'device_uuid'    => $request->header('X-Device-UUID'),
-            'started_at'     => now(),
-        ]);
-
-        foreach ([1, 2, 3] as $qNum) {
-            ExamQuestion::create([
-                'exam_id'             => $exam->id,
-                'question_number'     => $qNum,
-                'errors_count'        => 0,
-                'warnings_count'      => 0,
-                'continuations_count' => 0,
-                'final_score'         => config('exam.score_per_question', 30),
-            ]);
+        // BR-EXAM-10/11: pick the 3 questions before the transaction so we surface
+        // "no questions available" as 422 instead of leaving a half-created exam.
+        try {
+            $picked = $request->exam_type === ExamType::HalfQuran->value
+                ? $picker->pickForHalfQuran($request->input('selected_groups'))
+                : $picker->pickForFullQuran();
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'error'   => 'questions_unavailable',
+                'message' => $e->getMessage(),
+            ], 422);
         }
 
-        return response()->json(['exam' => new ExamResource($exam)], 201);
+        $exam = DB::transaction(function () use ($request, $studentId, $picked) {
+            $attemptNumber = (Exam::where('student_id', $studentId)->max('attempt_number') ?? 0) + 1;
+
+            $exam = Exam::create([
+                'student_id'      => $studentId,
+                'examiner_id'     => $request->user()->id,
+                'exam_type'       => $request->exam_type,
+                'selected_groups' => $request->exam_type === ExamType::HalfQuran->value
+                    ? $request->input('selected_groups')
+                    : null,
+                'source'          => ExamSource::Flutter,
+                'status'          => ExamStatus::InProgress,
+                'attempt_number'  => $attemptNumber,
+                'is_approved'     => false,
+                'device_uuid'     => $request->header('X-Device-UUID'),
+                'started_at'      => now(),
+            ]);
+
+            foreach ($picked as $i => $row) {
+                ExamQuestion::create([
+                    'exam_id'                => $exam->id,
+                    'question_number'        => $i + 1,
+                    'recitation_question_id' => $row['question']->id,
+                    'errors_count'           => 0,
+                    'warnings_count'         => 0,
+                    'continuations_count'    => 0,
+                    'final_score'            => config('exam.score_per_question', 30),
+                ]);
+            }
+
+            return $exam;
+        });
+
+        return response()->json([
+            'exam' => new ExamResource($exam->load(['questions.recitationQuestion'])),
+        ], 201);
+    }
+
+    // POST /exams/preview-questions — BR-EXAM-10/11
+    // Generates 3 candidate questions without persisting an exam, so the
+    // examiner can review tabs 1/2/3 before committing.
+    public function previewQuestions(StartExamRequest $request, ExamQuestionPicker $picker): JsonResponse
+    {
+        try {
+            $picked = $request->exam_type === ExamType::HalfQuran->value
+                ? $picker->pickForHalfQuran($request->input('selected_groups'))
+                : $picker->pickForFullQuran();
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'error'   => 'questions_unavailable',
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        $items = array_map(fn($row, $i) => [
+            'position'    => $i + 1,
+            'group'       => $row['group']->value,
+            'group_label' => $row['group']->shortLabel(),
+            'question'    => new RecitationQuestionResource($row['question']),
+        ], $picked, array_keys($picked));
+
+        return response()->json(['questions' => $items]);
     }
 
     // PATCH /exams/{exam}/progress — BR-EXAM-08: auto-save from Flutter
