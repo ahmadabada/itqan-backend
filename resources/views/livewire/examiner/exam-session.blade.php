@@ -176,7 +176,11 @@
                 </div>
             @endif
 
-            <form wire:submit="startExam" class="space-y-5">
+            <form
+                wire:submit="proceedFromSetup"
+                class="space-y-5"
+                x-data="{ examType: @js($examType) }"
+            >
 
                 @if($this->selectedStudent && empty($this->selectedStudent->national_id))
                     <flux:field>
@@ -192,16 +196,34 @@
                     </flux:field>
                 @endif
 
+                {{-- Visual state is Alpine-driven; wire:model (no .live) syncs to $examType
+                     only when the form submits, so toggling doesn't fire a request. --}}
                 <flux:field>
                     <flux:label>نوع الاختبار</flux:label>
                     <div class="grid grid-cols-2 gap-3">
-                        <label class="flex items-center justify-center border rounded-lg px-4 py-3 cursor-pointer transition-colors {{ $examType === 'full_quran' ? 'border-primary-400 bg-primary-50' : 'border-neutral-200 hover:border-neutral-300' }}">
-                            <input type="radio" wire:model.live="examType" value="full_quran" class="hidden">
-                            <span class="font-medium text-sm {{ $examType === 'full_quran' ? 'text-primary-700' : 'text-neutral-700' }}">القرآن كاملاً</span>
+                        <label
+                            class="flex items-center justify-center border rounded-lg px-4 py-3 cursor-pointer transition-colors"
+                            :class="examType === 'full_quran'
+                                ? 'border-primary-400 bg-primary-50'
+                                : 'border-neutral-200 hover:border-neutral-300'"
+                        >
+                            <input type="radio" wire:model="examType" x-model="examType" value="full_quran" class="hidden">
+                            <span class="font-medium text-sm"
+                                  :class="examType === 'full_quran' ? 'text-primary-700' : 'text-neutral-700'">
+                                القرآن كاملاً
+                            </span>
                         </label>
-                        <label class="flex items-center justify-center border rounded-lg px-4 py-3 cursor-pointer transition-colors {{ $examType === 'half_quran' ? 'border-primary-400 bg-primary-50' : 'border-neutral-200 hover:border-neutral-300' }}">
-                            <input type="radio" wire:model.live="examType" value="half_quran" class="hidden">
-                            <span class="font-medium text-sm {{ $examType === 'half_quran' ? 'text-primary-700' : 'text-neutral-700' }}">نصف القرآن</span>
+                        <label
+                            class="flex items-center justify-center border rounded-lg px-4 py-3 cursor-pointer transition-colors"
+                            :class="examType === 'half_quran'
+                                ? 'border-primary-400 bg-primary-50'
+                                : 'border-neutral-200 hover:border-neutral-300'"
+                        >
+                            <input type="radio" wire:model="examType" x-model="examType" value="half_quran" class="hidden">
+                            <span class="font-medium text-sm"
+                                  :class="examType === 'half_quran' ? 'text-primary-700' : 'text-neutral-700'">
+                                نصف القرآن
+                            </span>
                         </label>
                     </div>
                     <flux:error name="examType" />
@@ -220,11 +242,214 @@
                         رجوع
                     </flux:button>
                     <flux:button type="submit" variant="primary" class="flex-1">
-                        بدء الاختبار
+                        متابعة
                     </flux:button>
                 </div>
 
             </form>
+
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════ --}}
+    {{-- STEP: selecting_groups (half_quran only)   --}}
+    {{-- Alpine-managed selection: no request per click. One request on submit. --}}
+    {{-- ══════════════════════════════════════════ --}}
+    @elseif($step === 'selecting_groups')
+    <div
+        wire:ignore
+        wire:key="step-selecting-groups"
+        class="flex-1 flex items-center justify-center p-6"
+        x-data="{
+            selected: @js($selectedGroups),
+            submitting: false,
+            toggle(g) {
+                const i = this.selected.indexOf(g);
+                if (i !== -1) { this.selected.splice(i, 1); return; }
+                if (this.selected.length >= 3) return;
+                this.selected.push(g);
+            },
+            isSelected(g) { return this.selected.includes(g) },
+            order(g)      { return this.selected.indexOf(g) + 1 },
+            disabled(g)   { return !this.isSelected(g) && this.selected.length >= 3 },
+            async submit() {
+                if (this.selected.length !== 3 || this.submitting) return;
+                this.submitting = true;
+                try { await $wire.proceedFromGroups(this.selected); }
+                finally { this.submitting = false; }
+            }
+        }"
+    >
+        <div class="w-full max-w-xl">
+
+            <div class="text-center mb-6">
+                <p class="text-xs uppercase tracking-wider text-neutral-400 mb-1.5 font-medium">{{ $this->selectedStudent?->fullName() }}</p>
+                <h2 class="text-2xl font-bold text-neutral-900">اختر 3 مجموعات</h2>
+                <p class="text-sm text-neutral-500 mt-1">
+                    سيُسحب سؤال عشوائي من كل مجموعة. لا يمكن اختيار نفس المجموعة مرتين.
+                </p>
+                <p class="text-xs text-primary-600 font-semibold mt-2 tabular-nums">
+                    <span x-text="selected.length"></span> / 3
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                @foreach($groups as $g)
+                    <button
+                        type="button"
+                        @click="toggle({{ $g->value }})"
+                        :disabled="disabled({{ $g->value }})"
+                        class="relative rounded-2xl border-2 px-4 py-5 text-center transition-all"
+                        :class="isSelected({{ $g->value }})
+                            ? 'border-primary-500 bg-primary-50 shadow-[0_6px_20px_-8px_rgba(59,130,246,0.4)]'
+                            : (disabled({{ $g->value }})
+                                ? 'border-neutral-200 bg-white opacity-40 cursor-not-allowed'
+                                : 'border-neutral-200 bg-white hover:border-neutral-300 cursor-pointer')"
+                    >
+                        <span
+                            x-show="isSelected({{ $g->value }})"
+                            class="absolute top-2 end-2 w-6 h-6 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center"
+                            x-text="order({{ $g->value }})"
+                        ></span>
+                        <div class="text-lg sm:text-xl font-extrabold text-neutral-900 leading-tight">
+                            {{ $g->surahRange()[0] }}
+                            <span class="text-neutral-400 font-normal mx-0.5">—</span>
+                            {{ $g->surahRange()[1] }}
+                        </div>
+                        <div class="text-[11px] text-neutral-400 mt-2">{{ $g->fullLabel() }}</div>
+                    </button>
+                @endforeach
+            </div>
+
+            <div class="flex gap-3">
+                <flux:button type="button" wire:click="$set('step', 'setup')" variant="outline" class="flex-1">
+                    رجوع
+                </flux:button>
+                <button
+                    type="button"
+                    @click="submit()"
+                    :disabled="selected.length !== 3 || submitting"
+                    class="flex-1 py-3 rounded-xl font-semibold text-sm transition-all
+                           bg-gradient-to-b from-primary-500 to-primary-600 text-white
+                           hover:from-primary-600 hover:to-primary-700
+                           shadow-[0_8px_24px_-8px_rgba(59,130,246,0.5)]
+                           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
+                >
+                    <span x-show="!submitting">معاينة الأسئلة</span>
+                    <span x-show="submitting">جارٍ التوليد...</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════ --}}
+    {{-- STEP: previewing — Alpine-only tabs, no server hits for navigation --}}
+    {{-- ══════════════════════════════════════════ --}}
+    @elseif($step === 'previewing')
+    <div
+        wire:ignore
+        wire:key="step-previewing"
+        class="flex-1 flex items-start justify-center p-4 sm:p-6"
+        x-data="{
+            tab: 1,
+            qs: @js($pickedQuestions),
+            get current() { return this.qs[this.tab] || null }
+        }"
+    >
+        <div class="w-full max-w-2xl">
+
+            <div class="text-center mb-5">
+                <p class="text-xs uppercase tracking-wider text-neutral-400 mb-1.5 font-medium">{{ $this->selectedStudent?->fullName() }}</p>
+                <h2 class="text-xl sm:text-2xl font-bold text-neutral-900">معاينة الأسئلة المختارة</h2>
+                <p class="text-xs text-neutral-500 mt-1">راجع الأسئلة الثلاثة قبل بدء الجلسة.</p>
+            </div>
+
+            {{-- Tabs --}}
+            <div class="border-b border-neutral-200 mb-5">
+                <nav class="flex gap-1 justify-center" aria-label="معاينة الأسئلة">
+                    <template x-for="n in [1, 2, 3]" :key="n">
+                        <button
+                            type="button"
+                            @click="tab = n"
+                            class="px-4 sm:px-5 py-2.5 text-sm font-medium transition-colors -mb-px border-b-2"
+                            :class="tab === n
+                                ? 'border-primary-600 text-primary-700'
+                                : 'border-transparent text-neutral-500 hover:text-neutral-700'"
+                        >
+                            <span x-text="'السؤال ' + n"></span>
+                            <span
+                                x-show="qs[n]"
+                                class="ms-1.5 text-[10px] px-1.5 py-0.5 rounded-full"
+                                :class="tab === n ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-500'"
+                                x-text="qs[n]?.group_label"
+                            ></span>
+                        </button>
+                    </template>
+                </nav>
+            </div>
+
+            {{-- Active panel --}}
+            <div x-show="current" class="bg-white rounded-2xl border border-neutral-200 p-5 sm:p-7 shadow-sm">
+                <div class="mb-5">
+                    <div class="text-[10px] uppercase tracking-wider text-neutral-400">المجموعة</div>
+                    <div class="text-base font-bold text-primary-700 mt-0.5">
+                        <span x-text="current?.group_label"></span>
+                        <span class="text-neutral-400 font-normal">—</span>
+                        <span x-text="current?.group_full_label"></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="border border-neutral-200 rounded-xl p-4 bg-neutral-50/50">
+                        <div class="text-[10px] font-medium text-neutral-500 mb-2">البداية</div>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-neutral-400 text-xs w-10">السورة:</span>
+                                <span class="font-semibold text-neutral-900" x-text="current?.start_surah_name"></span>
+                                <span class="text-[10px] text-neutral-400" x-text="'(' + current?.start_surah + ')'"></span>
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-neutral-400 text-xs w-10">الآية:</span>
+                                <span class="text-neutral-700 tabular-nums" x-text="current?.start_ayah"></span>
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-neutral-400 text-xs w-10">الصفحة:</span>
+                                <span class="text-neutral-700 tabular-nums" x-text="current?.start_page"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border border-neutral-200 rounded-xl p-4 bg-neutral-50/50">
+                        <div class="text-[10px] font-medium text-neutral-500 mb-2">النهاية</div>
+                        <div class="space-y-1.5 text-sm">
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-neutral-400 text-xs w-10">السورة:</span>
+                                <span class="font-semibold text-neutral-900" x-text="current?.end_surah_name"></span>
+                                <span class="text-[10px] text-neutral-400" x-text="'(' + current?.end_surah + ')'"></span>
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-neutral-400 text-xs w-10">الآية:</span>
+                                <span class="text-neutral-700 tabular-nums" x-text="current?.end_ayah"></span>
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-neutral-400 text-xs w-10">الصفحة:</span>
+                                <span class="text-neutral-700 tabular-nums" x-text="current?.end_page"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Actions --}}
+            <div class="mt-5 flex items-center justify-end gap-2">
+                <flux:button wire:click="backFromPreview" variant="outline" size="sm">
+                    رجوع
+                </flux:button>
+                <flux:button wire:click="confirmAndStart" variant="primary">
+                    تأكيد وبدء الاختبار
+                </flux:button>
+            </div>
 
         </div>
     </div>
@@ -240,6 +465,7 @@
          Livewire updates this element; Alpine reads it once in init(). --}}
     <div class="hidden" id="_exam-data"
         data-qs='@json($questions)'
+        data-rq='@json($pickedQuestions)'
         data-cq="{{ $currentQuestion }}"
         data-rs="{{ $rulingsScore }}"
         data-ps="{{ $passingScore }}"
@@ -256,6 +482,7 @@
         x-data="{
             // ── State ──
             qs: {},
+            rq: {},                             // recitation question snapshots, keyed by position
             currentQ: 1,
             subStep: 'question',                // 'question' | 'rulings' | 'summary'
             rulingsScore: 0,
@@ -267,6 +494,7 @@
 
             // ── Computed ──
             get q() { return this.qs[this.currentQ] },
+            get currentRq() { return this.rq[this.currentQ] || null },
             score(n) {
                 const q = this.qs[n];
                 return +Math.max(0, this.spq - q.errors_count*this.de - q.warnings_count*this.dw - q.continuations_count*this.dc).toFixed(1);
@@ -331,6 +559,7 @@
             init() {
                 const d = document.getElementById('_exam-data').dataset;
                 this.qs           = JSON.parse(d.qs);
+                this.rq           = JSON.parse(d.rq || '{}');
                 this.currentQ     = +d.cq;
                 this.rulingsScore = +d.rs || 0;
                 this.passingScore = +d.ps;
@@ -370,7 +599,37 @@
             {{-- ─── Student + question indicator ─── --}}
             <div class="text-center mt-2">
                 <p class="text-xs uppercase tracking-wider text-neutral-400 mb-1.5 font-medium">{{ $this->selectedStudent?->fullName() }}</p>
-                <h2 class="text-xl font-bold text-neutral-800 tracking-tight" x-text="'السؤال ' + currentQ + ' من 3'"></h2>
+                <h2 class="text-xl font-bold text-neutral-800 tracking-tight">
+                    <span x-text="'السؤال ' + currentQ + ' من 3'"></span>
+                    <span x-show="currentRq" class="ms-2 text-sm font-semibold text-primary-600"
+                          x-text="currentRq ? '· ' + currentRq.group_label : ''"></span>
+                </h2>
+            </div>
+
+            {{-- ─── Recitation question card: surah/ayah/page (BR-EXAM-10/11) ─── --}}
+            <div x-show="currentRq" class="w-full bg-gradient-to-br from-white via-amber-50/30 to-amber-100/20
+                        rounded-2xl border border-amber-200/60 px-5 py-4
+                        shadow-[0_4px_20px_-8px_rgba(217,119,6,0.15)]">
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <div class="text-[10px] uppercase tracking-wider text-amber-700/70 font-bold mb-1.5">من</div>
+                        <div class="font-bold text-neutral-900 text-base" x-text="currentRq?.start_surah_name"></div>
+                        <div class="text-xs text-neutral-500 mt-0.5">
+                            آية <span class="font-semibold tabular-nums" x-text="currentRq?.start_ayah"></span>
+                            <span class="text-neutral-300 mx-1">·</span>
+                            صفحة <span class="font-semibold tabular-nums" x-text="currentRq?.start_page"></span>
+                        </div>
+                    </div>
+                    <div class="border-s border-amber-200/60 ps-4">
+                        <div class="text-[10px] uppercase tracking-wider text-amber-700/70 font-bold mb-1.5">إلى</div>
+                        <div class="font-bold text-neutral-900 text-base" x-text="currentRq?.end_surah_name"></div>
+                        <div class="text-xs text-neutral-500 mt-0.5">
+                            آية <span class="font-semibold tabular-nums" x-text="currentRq?.end_ayah"></span>
+                            <span class="text-neutral-300 mx-1">·</span>
+                            صفحة <span class="font-semibold tabular-nums" x-text="currentRq?.end_page"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {{-- ─── Score card (soft UI, gradient bg, large radius, prominent number) ─── --}}

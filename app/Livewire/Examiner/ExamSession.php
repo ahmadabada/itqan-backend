@@ -4,6 +4,7 @@ namespace App\Livewire\Examiner;
 
 use App\Enums\ExamSource;
 use App\Enums\ExamStatus;
+use App\Enums\QuestionGroup;
 use App\Enums\UserRole;
 use App\Models\Exam;
 use App\Models\ExamQuestion;
@@ -11,21 +12,25 @@ use App\Models\ReexamPermit;
 use App\Models\Student;
 use App\Models\SystemSetting;
 use App\Services\ArabicSearch;
+use App\Services\ExamQuestionPicker;
 use App\Services\ScoreCalculator;
+use App\Support\Surah;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-// Flow: search → setup → active (Alpine handles Q1/Q2/Q3 + rulings + summary entirely client-side) → saved
+// Flow: search → setup → (selecting_groups for half_quran) → previewing → active → saved
+// Active step has its own client-side sub-steps: question/rulings/summary (Alpine).
 #[Layout('layouts.app')]
 #[Title('جلسة الاختبار')]
 class ExamSession extends Component
 {
     // ── State machine ─────────────────────────────────────
-    // Server only knows 4 states; question/rulings/summary are client sub-states inside `active`
-    public string $step = 'search'; // search|setup|active|saved
+    // Server states; question/rulings/summary inside `active` are client-side sub-states.
+    public string $step = 'search'; // search|setup|selecting_groups|previewing|active|saved
 
     // ── Student selection ──────────────────────────────────
     public string $studentSearch     = '';
@@ -45,6 +50,19 @@ class ExamSession extends Component
     public bool   $needsPermit     = false;
     public string $permitCode      = '';
     public string $inlineNationalId = ''; // populated when selected student has no national_id
+
+    // ── Half-quran group selection (BR-EXAM-11) ────────────
+    // The live UI state for the group-selection step is owned by Alpine; this
+    // server-side copy is only set when proceedFromGroups() is called and is
+    // persisted onto the Exam row on confirmAndStart.
+    /** @var array<int> exactly 3 distinct values in 1..6 once selected */
+    public array $selectedGroups = [];
+
+    // ── Preview of the picked recitation questions ─────────
+    // Tab navigation in `previewing` is Alpine-only — no `previewTab` property
+    // here, because no server round-trip should fire when the examiner clicks a tab.
+    /** @var array<int, array> position (1..3) → snapshot of the picked RecitationQuestion */
+    public array $pickedQuestions = [];
 
     // ── Active exam ────────────────────────────────────────
     public ?int $examId          = null;
@@ -72,10 +90,10 @@ class ExamSession extends Component
             return;
         }
 
-        // BR-EXAM-09: Resume in-progress exam if any
+        // BR-EXAM-09: Resume in-progress exam if any (hydrate recitation details too).
         $inProgress = Exam::where('examiner_id', $user->id)
             ->where('status', ExamStatus::InProgress)
-            ->with('questions')
+            ->with('questions.recitationQuestion')
             ->latest()
             ->first();
 
@@ -177,15 +195,14 @@ class ExamSession extends Component
     }
 
     // ──────────────────────────────────────────────────────
-    // Step: setup → start exam
+    // Step: setup → groups (half_quran) | previewing (full_quran)
     // ──────────────────────────────────────────────────────
 
-    public function startExam(): void
+    public function proceedFromSetup(ExamQuestionPicker $picker): void
     {
         $student = Student::findOrFail($this->selectedStudentId);
 
         // BR-EXAM: a student MUST have a national_id to sit an exam.
-        // If missing, validate + save the inline-entered ID before continuing.
         if (empty($student->national_id)) {
             $this->validate([
                 'inlineNationalId' => ['required', 'digits:9', 'unique:students,national_id'],
@@ -194,7 +211,6 @@ class ExamSession extends Component
                 'inlineNationalId.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
                 'inlineNationalId.unique'   => 'رقم الهوية مسجّل لطالب آخر.',
             ]);
-
             $student->update(['national_id' => $this->inlineNationalId]);
         }
 
@@ -204,7 +220,7 @@ class ExamSession extends Component
             'examType.required' => 'اختر نوع الاختبار.',
         ]);
 
-        // BR-REEX-01: Validate permit if re-exam
+        // BR-REEX-01: Validate permit but don't mark used yet — wait until confirmAndStart.
         if ($this->needsPermit) {
             $permit = ReexamPermit::where('permit_code', $this->permitCode)
                 ->where('student_id', $this->selectedStudentId)
@@ -214,35 +230,99 @@ class ExamSession extends Component
                 $this->addError('permitCode', 'رمز الإذن غير صالح أو منتهي الصلاحية.');
                 return;
             }
+        }
 
+        if ($this->examType === 'half_quran') {
+            $this->selectedGroups = [];
+            $this->step = 'selecting_groups';
+            return;
+        }
+
+        // full_quran: pick immediately and jump to preview.
+        $this->generatePicks($picker);
+    }
+
+    // ──────────────────────────────────────────────────────
+    // Step: selecting_groups (half_quran only)
+    // ──────────────────────────────────────────────────────
+    // Group selection is Alpine-managed; we receive the final 3 groups in one
+    // call when the examiner clicks "معاينة الأسئلة". This is the only request.
+    public function proceedFromGroups(array $groups, ExamQuestionPicker $picker): void
+    {
+        $groups = array_values(array_filter(
+            array_map('intval', $groups),
+            fn($g) => $g >= 1 && $g <= 6
+        ));
+
+        if (count($groups) !== 3 || count(array_unique($groups)) !== 3) {
+            $this->dispatch('notify', type: 'danger', message: 'اختر 3 مجموعات مختلفة.');
+            return;
+        }
+
+        $this->selectedGroups = $groups;
+        $this->generatePicks($picker);
+    }
+
+    // ──────────────────────────────────────────────────────
+    // Step: previewing — tab navigation is Alpine-only.
+    // Server only sees backFromPreview / confirmAndStart.
+    // ──────────────────────────────────────────────────────
+
+    public function backFromPreview(): void
+    {
+        $this->step = $this->examType === 'half_quran' ? 'selecting_groups' : 'setup';
+    }
+
+    public function confirmAndStart(): void
+    {
+        if (count($this->pickedQuestions) !== 3) {
+            $this->dispatch('notify', type: 'danger', message: 'لم يتم توليد أسئلة.');
+            return;
+        }
+
+        // BR-REEX-01: re-validate permit + mark used now (deferred from setup).
+        if ($this->needsPermit) {
+            $permit = ReexamPermit::where('permit_code', $this->permitCode)
+                ->where('student_id', $this->selectedStudentId)
+                ->first();
+
+            if (! $permit || ! $permit->isValid()) {
+                $this->addError('permitCode', 'رمز الإذن غير صالح أو منتهي الصلاحية.');
+                $this->step = 'setup';
+                return;
+            }
             $permit->update(['is_used' => true, 'used_at' => now()]);
         }
 
-        // Determine attempt number (BR-REEX-06)
         $attemptNumber = (Exam::where('student_id', $this->selectedStudentId)->max('attempt_number') ?? 0) + 1;
 
-        $exam = Exam::create([
-            'student_id'     => $this->selectedStudentId,
-            'examiner_id'    => Auth::user()->id,
-            'exam_type'      => $this->examType,
-            'source'         => ExamSource::Web,
-            'status'         => ExamStatus::InProgress,
-            'attempt_number' => $attemptNumber,
-            'is_approved'    => false,
-            'started_at'     => now(),
-        ]);
-
-        // Create 3 question rows upfront
-        foreach ([1, 2, 3] as $qNum) {
-            ExamQuestion::create([
-                'exam_id'             => $exam->id,
-                'question_number'     => $qNum,
-                'errors_count'        => 0,
-                'warnings_count'      => 0,
-                'continuations_count' => 0,
-                'final_score'         => config('exam.score_per_question', 30),
+        $exam = DB::transaction(function () use ($attemptNumber) {
+            $exam = Exam::create([
+                'student_id'      => $this->selectedStudentId,
+                'examiner_id'     => Auth::user()->id,
+                'exam_type'       => $this->examType,
+                'selected_groups' => $this->examType === 'half_quran' ? $this->selectedGroups : null,
+                'source'          => ExamSource::Web,
+                'status'          => ExamStatus::InProgress,
+                'attempt_number'  => $attemptNumber,
+                'is_approved'     => false,
+                'started_at'      => now(),
             ]);
-        }
+
+            foreach ($this->pickedQuestions as $position => $q) {
+                ExamQuestion::create([
+                    'exam_id'                => $exam->id,
+                    'question_number'        => $position,
+                    'recitation_question_id' => $q['recitation_question_id'],
+                    'errors_count'           => 0,
+                    'warnings_count'         => 0,
+                    'continuations_count'    => 0,
+                    'final_score'            => config('exam.score_per_question', 30),
+                ]);
+            }
+
+            return $exam;
+        });
 
         $this->examId          = $exam->id;
         $this->currentQuestion = 1;
@@ -253,6 +333,43 @@ class ExamSession extends Component
             3 => ['errors_count' => 0, 'warnings_count' => 0, 'continuations_count' => 0, 'history' => []],
         ];
         $this->step = 'active';
+    }
+
+    /**
+     * Pick 3 recitation questions according to current exam_type/selected_groups,
+     * stash a display snapshot for the preview/active screens, and switch to `previewing`.
+     */
+    private function generatePicks(ExamQuestionPicker $picker): void
+    {
+        try {
+            $picked = $this->examType === 'half_quran'
+                ? $picker->pickForHalfQuran($this->selectedGroups)
+                : $picker->pickForFullQuran();
+        } catch (\Throwable $e) {
+            $this->dispatch('notify', type: 'danger', message: $e->getMessage());
+            return;
+        }
+
+        $this->pickedQuestions = [];
+        foreach ($picked as $i => $row) {
+            $position = $i + 1;
+            $q        = $row['question'];
+            $this->pickedQuestions[$position] = [
+                'recitation_question_id' => $q->id,
+                'group_number'           => $row['group']->value,
+                'group_label'            => $row['group']->shortLabel(),
+                'group_full_label'       => $row['group']->fullLabel(),
+                'start_surah'            => (int) $q->start_surah,
+                'start_surah_name'       => Surah::nameFor((int) $q->start_surah) ?? '',
+                'start_ayah'             => (int) $q->start_ayah,
+                'start_page'             => (int) $q->start_page,
+                'end_surah'              => (int) $q->end_surah,
+                'end_surah_name'         => Surah::nameFor((int) $q->end_surah) ?? '',
+                'end_ayah'               => (int) $q->end_ayah,
+                'end_page'               => (int) $q->end_page,
+            ];
+        }
+        $this->step = 'previewing';
     }
 
     // ──────────────────────────────────────────────────────
@@ -338,6 +455,8 @@ class ExamSession extends Component
         $this->needsPermit       = false;
         $this->permitCode        = '';
         $this->inlineNationalId  = '';
+        $this->selectedGroups    = [];
+        $this->pickedQuestions   = [];
         $this->examId            = null;
         $this->currentQuestion   = 1;
         $this->rulingsScore      = 0;
@@ -379,6 +498,7 @@ class ExamSession extends Component
     {
         return view('livewire.examiner.exam-session', [
             'examiner'        => Auth::user(),
+            'groups'          => QuestionGroup::cases(),
             'passingScore'    => (int) SystemSetting::get('passing_score', 60),
             'scorePerQ'       => (int) config('exam.score_per_question', 30),
             'errorDeduction'  => (float) config('exam.deductions.error', 2),
@@ -414,8 +534,11 @@ class ExamSession extends Component
         $this->examId            = $exam->id;
         $this->selectedStudentId = $exam->student_id;
         $this->examType          = $exam->exam_type->value;
+        $this->selectedGroups    = $exam->selected_groups ?? [];
         $this->currentQuestion   = 1;
         $this->rulingsScore      = (int) ($exam->rulings_score ?? 0);
+
+        $this->pickedQuestions = [];
 
         foreach ($exam->questions as $q) {
             $num = $q->question_number;
@@ -425,6 +548,26 @@ class ExamSession extends Component
                 'continuations_count' => $q->continuations_count,
                 'history'             => [], // history is not persisted
             ];
+
+            // Rehydrate the recitation snapshot from the linked bank row so the
+            // active view can show surah/ayah/page after a refresh or resume.
+            if ($q->recitationQuestion) {
+                $rq = $q->recitationQuestion;
+                $this->pickedQuestions[$num] = [
+                    'recitation_question_id' => $rq->id,
+                    'group_number'           => $rq->group_number->value,
+                    'group_label'            => $rq->group_number->shortLabel(),
+                    'group_full_label'       => $rq->group_number->fullLabel(),
+                    'start_surah'            => (int) $rq->start_surah,
+                    'start_surah_name'       => Surah::nameFor((int) $rq->start_surah) ?? '',
+                    'start_ayah'             => (int) $rq->start_ayah,
+                    'start_page'             => (int) $rq->start_page,
+                    'end_surah'              => (int) $rq->end_surah,
+                    'end_surah_name'         => Surah::nameFor((int) $rq->end_surah) ?? '',
+                    'end_ayah'               => (int) $rq->end_ayah,
+                    'end_page'               => (int) $rq->end_page,
+                ];
+            }
         }
 
         $this->step = 'active';
