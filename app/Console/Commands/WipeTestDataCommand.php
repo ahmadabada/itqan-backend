@@ -49,6 +49,13 @@ class WipeTestDataCommand extends Command
         }
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
+        // Delete audit logs for non-super-admin users to prevent FK constraint violations.
+        $nonSuperAdminIds = User::withTrashed()->where('is_super_admin', false)->pluck('id');
+        if ($nonSuperAdminIds->isNotEmpty()) {
+            $deletedLogs = DB::table('audit_logs')->whereIn('user_id', $nonSuperAdminIds)->delete();
+            $this->line("  deleted audit_logs for non-super-admins: {$deletedLogs}");
+        }
+
         // Hard-delete non-super-admin users (and their personal access tokens).
         $deleted = User::withTrashed()
             ->where('is_super_admin', false)
