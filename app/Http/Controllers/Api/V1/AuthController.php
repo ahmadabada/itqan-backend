@@ -33,7 +33,11 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $expiresAt = now()->addMinutes(config('sanctum.expiration', 43200));
+        // config/sanctum.php has 'expiration' => null (Sanctum default = no enforced
+        // limit). The 2nd arg of config() only kicks in when the key is missing,
+        // NOT when it's null — so addMinutes(null) here made tokens expire instantly.
+        // Use ?? so a null config falls back to 30 days (43200 minutes).
+        $expiresAt = now()->addMinutes(config('sanctum.expiration') ?? 43200);
 
         // BR-AUTH-03: Token name includes device_uuid for tracking
         $token = $user->createToken(
