@@ -3,8 +3,10 @@
 namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Contracts\Validation\Validator;
 
+// Record-per-exam payload: every offline exam carries its own student. The server
+// never looks up an existing student by national_id — duplicates are intentional and
+// the admin merges them after the exam period via the merge UI.
 class SyncExamsRequest extends FormRequest
 {
     public function authorize(): bool
@@ -15,53 +17,35 @@ class SyncExamsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'exams'                                   => ['required', 'array', 'min:1'],
-            'exams.*.local_id'                        => ['required', 'string'],
-            'exams.*.student_id'                      => ['nullable', 'integer'],
-            'exams.*.student_national_id'             => ['nullable', 'string'],
-            'exams.*.is_manually_added_student'       => ['required', 'boolean'],
-            'exams.*.exam_type'                       => ['required', 'in:full_quran,half_quran'],
-            'exams.*.rulings_score'                   => ['required', 'numeric', 'min:0', 'max:10'],
-            'exams.*.total_score'                     => ['required', 'numeric', 'min:0', 'max:100'],
-            // is_passed is no longer used server-side — it's computed live from total_score
-            // against the current passing_score setting. Field stays accepted for backward
-            // compatibility with older Flutter builds but is ignored.
-            'exams.*.is_passed'                       => ['nullable', 'boolean'],
-            'exams.*.started_at'                      => ['required', 'date'],
-            'exams.*.completed_at'                    => ['required', 'date'],
-            'exams.*.device_uuid'                     => ['required', 'string'],
-            'exams.*.reexam_permit_code'              => ['nullable', 'string'],
-            'exams.*.questions'                       => ['required', 'array', 'size:3'],
-            'exams.*.questions.*.question_number'     => ['required', 'integer', 'between:1,3'],
-            'exams.*.questions.*.errors_count'        => ['required', 'integer', 'min:0'],
-            'exams.*.questions.*.warnings_count'      => ['required', 'integer', 'min:0'],
-            'exams.*.questions.*.continuations_count' => ['required', 'integer', 'min:0'],
-            'exams.*.questions.*.final_score'         => ['required', 'numeric', 'min:0', 'max:30'],
-            'exams.*.manual_student_data'             => ['nullable', 'array'],
-            'exams.*.manual_student_data.national_id' => ['nullable', 'string'],
-            'exams.*.manual_student_data.first_name'  => ['nullable', 'string'],
-            'exams.*.manual_student_data.family_name' => ['nullable', 'string'],
-        ];
-    }
+            'exams'                                       => ['required', 'array', 'min:1'],
+            'exams.*.client_request_id'                   => ['required', 'string', 'size:36'],
 
-    // BR-SYNC-04: cross-field check — manual students must supply national_id; non-manual must supply student_id
-    public function after(): array
-    {
-        return [
-            function (Validator $validator) {
-                foreach ($this->exams ?? [] as $i => $exam) {
-                    if (($exam['is_manually_added_student'] ?? false) && empty($exam['manual_student_data']['national_id'])) {
-                        $validator->errors()->add(
-                            "exams.$i.manual_student_data.national_id",
-                            'رقم الهوية مطلوب للطالب اليدوي.'
-                        );
-                    }
+            // The student that took this exam — one-to-one per offline submission.
+            'exams.*.student'                             => ['required', 'array'],
+            'exams.*.student.client_request_id'           => ['required', 'string', 'size:36'],
+            'exams.*.student.national_id'                 => ['required', 'string', 'max:20'],
+            'exams.*.student.first_name'                  => ['required', 'string', 'max:50'],
+            'exams.*.student.second_name'                 => ['nullable', 'string', 'max:50'],
+            'exams.*.student.third_name'                  => ['nullable', 'string', 'max:50'],
+            'exams.*.student.family_name'                 => ['required', 'string', 'max:50'],
+            'exams.*.student.gender'                      => ['required', 'in:male,female'],
 
-                    if (! ($exam['is_manually_added_student'] ?? false) && empty($exam['student_id'])) {
-                        $validator->errors()->add("exams.$i.student_id", 'رقم الطالب مطلوب.');
-                    }
-                }
-            },
+            'exams.*.exam_type'                           => ['required', 'in:full_quran,half_quran'],
+            'exams.*.selected_groups'                     => ['nullable', 'array'],
+            'exams.*.selected_groups.*'                   => ['integer', 'between:1,6'],
+            'exams.*.rulings_score'                       => ['required', 'numeric', 'min:0', 'max:10'],
+            'exams.*.total_score'                         => ['required', 'numeric', 'min:0', 'max:100'],
+            'exams.*.device_uuid'                         => ['required', 'string', 'max:64'],
+            'exams.*.started_at'                          => ['required', 'date'],
+            'exams.*.completed_at'                        => ['required', 'date'],
+
+            'exams.*.questions'                           => ['required', 'array', 'size:3'],
+            'exams.*.questions.*.question_number'         => ['required', 'integer', 'between:1,3'],
+            'exams.*.questions.*.recitation_question_id'  => ['nullable', 'integer', 'exists:recitation_questions,id'],
+            'exams.*.questions.*.errors_count'            => ['required', 'integer', 'min:0'],
+            'exams.*.questions.*.warnings_count'          => ['required', 'integer', 'min:0'],
+            'exams.*.questions.*.continuations_count'     => ['required', 'integer', 'min:0'],
+            'exams.*.questions.*.final_score'             => ['required', 'numeric', 'min:0', 'max:30'],
         ];
     }
 }

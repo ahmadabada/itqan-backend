@@ -6,190 +6,128 @@ use App\Enums\ExamSource;
 use App\Enums\ExamStatus;
 use App\Models\Exam;
 use App\Models\ExamQuestion;
-use App\Models\ReexamPermit;
 use App\Models\Student;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
+// Offline-first sync philosophy:
+//  • Every offline exam creates its own student row (record-per-exam). The server
+//    never tries to deduplicate by national_id — the admin merges duplicates after
+//    the exam period via the merge UI.
+//  • Idempotency is keyed on client_request_id (UUID v4). Retrying the same payload
+//    after a dropped response returns the existing row instead of inserting again.
+//  • Uploads are auto-approved and authoritative; merging is the only place where
+//    is_authoritative or is_approved gets flipped, and only by an admin.
 class SyncService
 {
+    private const MYSQL_DUP_ENTRY = 1062;
+
     public function processExams(array $exams, int $examinerId): array
     {
-        // Pre-compute student occurrence counts to detect within-batch duplicates (BR-CONF-02)
-        $studentKeys = $this->buildStudentKeys($exams);
-
         $results = [];
         foreach ($exams as $examData) {
-            $results[] = $this->processOne($examData, $examinerId, $studentKeys);
+            $results[] = DB::transaction(fn() => $this->processOne($examData, $examinerId));
         }
-
         return $results;
     }
 
-    private function processOne(array $data, int $examinerId, array $studentKeys): array
+    private function processOne(array $data, int $examinerId): array
     {
-        // Step 1: Resolve student
-        [$student, $manualConflict] = $this->resolveStudent($data);
-
-        // Step 2: Detect conflict reason
-        $studentKey     = $this->studentKey($data);
-        $conflictReason = $this->detectConflict(
-            $data, $student, $studentKeys[$studentKey] ?? 1, $manualConflict
-        );
-
-        // Step 3: Consume permit if valid (only when no prior-permit conflict)
-        $permitId = null;
-        if ($data['reexam_permit_code'] && $conflictReason !== 'existing_approved_no_permit') {
-            $permit = ReexamPermit::where('permit_code', $data['reexam_permit_code'])
-                ->where('student_id', $student->id)
-                ->first();
-
-            if ($permit && $permit->isValid()) {
-                $permit->update(['is_used' => true, 'used_at' => now()]);
-                $permitId = $permit->id;
-            }
+        // Idempotency check: this exam may already be on the server from a prior retry.
+        $existing = Exam::where('client_request_id', $data['client_request_id'])->first();
+        if ($existing) {
+            return [
+                'client_request_id' => $data['client_request_id'],
+                'server_exam_id'    => $existing->id,
+                'server_student_id' => $existing->student_id,
+                'status'            => 'idempotent',
+            ];
         }
 
-        // Step 4: Create exam
-        $status      = $conflictReason ? ExamStatus::PendingReview : ExamStatus::Approved;
-        $isApproved  = $conflictReason === null;
-        $attemptNumber = (Exam::where('student_id', $student->id)->max('attempt_number') ?? 0) + 1;
+        $student = $this->upsertStudent($data['student'], $examinerId, $data['device_uuid']);
 
-        $exam = Exam::create([
-            'student_id'       => $student->id,
-            'examiner_id'      => $examinerId,
-            'exam_type'        => $data['exam_type'],
-            'source'           => ExamSource::Flutter,
-            'status'           => $status,
-            'attempt_number'   => $attemptNumber,
-            'rulings_score'    => $data['rulings_score'],
-            'total_score'      => $data['total_score'],
-            'is_approved'      => $isApproved,
-            'device_uuid'      => $data['device_uuid'],
-            'reexam_permit_id' => $permitId,
-            'conflict_reason'  => $conflictReason,
-            'started_at'       => $data['started_at'],
-            'completed_at'     => $data['completed_at'],
-            'synced_at'        => now(),
-        ]);
+        $exam = $this->insertExam($data, $examinerId, $student->id);
 
         foreach ($data['questions'] as $q) {
             ExamQuestion::create([
-                'exam_id'             => $exam->id,
-                'question_number'     => $q['question_number'],
-                'errors_count'        => $q['errors_count'],
-                'warnings_count'      => $q['warnings_count'],
-                'continuations_count' => $q['continuations_count'],
-                'final_score'         => $q['final_score'],
+                'exam_id'                => $exam->id,
+                'question_number'        => $q['question_number'],
+                'recitation_question_id' => $q['recitation_question_id'] ?? null,
+                'errors_count'           => $q['errors_count'],
+                'warnings_count'         => $q['warnings_count'],
+                'continuations_count'    => $q['continuations_count'],
+                'final_score'            => $q['final_score'],
             ]);
         }
 
-        // BR-REEX-08: One approved per student — revoke others when auto-approving
-        if ($isApproved) {
-            Exam::where('student_id', $student->id)
-                ->where('id', '!=', $exam->id)
-                ->where('is_approved', true)
-                ->update(['is_approved' => false]);
-        }
-
-        $result = [
-            'local_id'       => $data['local_id'],
-            'server_exam_id' => $exam->id,
-            'status'         => $exam->status->value,
-            'is_approved'    => $exam->is_approved,
+        return [
+            'client_request_id' => $data['client_request_id'],
+            'server_exam_id'    => $exam->id,
+            'server_student_id' => $student->id,
+            'status'            => 'created',
         ];
-
-        if ($conflictReason) {
-            $result['conflict_reason'] = $conflictReason;
-        }
-
-        return $result;
     }
 
-    // Returns [Student, bool $hadNationalIdConflict]
-    private function resolveStudent(array $data): array
+    private function upsertStudent(array $data, int $examinerId, string $deviceUuid): Student
     {
-        if (! $data['is_manually_added_student']) {
-            return [Student::findOrFail($data['student_id']), false];
-        }
-
-        $manualData = $data['manual_student_data'];
-        $existing   = Student::where('national_id', $manualData['national_id'])->first();
-
+        $existing = Student::where('client_request_id', $data['client_request_id'])->first();
         if ($existing) {
-            // BR-CONF-05: manual student but national_id already exists
-            return [$existing, true];
+            return $existing;
         }
 
-        $student = Student::create([
-            'national_id'  => $manualData['national_id'],
-            'first_name'   => $manualData['first_name'],
-            'second_name'  => $manualData['second_name'] ?? null,
-            'third_name'   => $manualData['third_name'] ?? null,
-            'family_name'  => $manualData['family_name'],
-        ]);
-
-        return [$student, false];
-    }
-
-    private function detectConflict(array $data, Student $student, int $batchCount, bool $manualConflict): ?string
-    {
-        // BR-CONF-05: manually added student whose national_id already exists in DB
-        if ($manualConflict) {
-            return 'manual_student_exists';
-        }
-
-        // BR-CONF-02: same student appears more than once in this batch (same device offline)
-        if ($batchCount > 1) {
-            return 'same_student_multiple_offline';
-        }
-
-        // BR-CONF-03: student already has a completed exam from a different device
-        $otherDeviceExists = Exam::where('student_id', $student->id)
-            ->where('device_uuid', '!=', $data['device_uuid'])
-            ->whereNotNull('completed_at')
-            ->exists();
-
-        if ($otherDeviceExists) {
-            return 'same_student_multiple_devices';
-        }
-
-        // BR-CONF-04: student has an approved exam and no valid permit was provided
-        $hasApproved = Exam::where('student_id', $student->id)->where('is_approved', true)->exists();
-
-        if ($hasApproved) {
-            $hasValidPermit = false;
-
-            if ($data['reexam_permit_code']) {
-                $permit = ReexamPermit::where('permit_code', $data['reexam_permit_code'])
-                    ->where('student_id', $student->id)
-                    ->first();
-                $hasValidPermit = $permit && $permit->isValid();
+        try {
+            return Student::create([
+                'national_id'        => $data['national_id'],
+                'first_name'         => $data['first_name'],
+                'second_name'        => $data['second_name'] ?? null,
+                'third_name'         => $data['third_name'] ?? null,
+                'family_name'        => $data['family_name'],
+                'gender'             => $data['gender'],
+                'created_via'        => ExamSource::Flutter->value,
+                'created_by_user_id' => $examinerId,
+                'device_uuid'        => $deviceUuid,
+                'client_request_id'  => $data['client_request_id'],
+            ]);
+        } catch (QueryException $e) {
+            // Race: a concurrent request inserted first. Return that row.
+            if ($this->isDuplicateEntry($e)) {
+                return Student::where('client_request_id', $data['client_request_id'])->firstOrFail();
             }
+            throw $e;
+        }
+    }
 
-            if (! $hasValidPermit) {
-                return 'existing_approved_no_permit';
+    private function insertExam(array $data, int $examinerId, int $studentId): Exam
+    {
+        try {
+            return Exam::create([
+                'student_id'         => $studentId,
+                'examiner_id'        => $examinerId,
+                'exam_type'          => $data['exam_type'],
+                'selected_groups'    => $data['selected_groups'] ?? null,
+                'attempt_number'     => 1,
+                'rulings_score'      => $data['rulings_score'],
+                'total_score'        => $data['total_score'],
+                'is_approved'        => true,
+                'is_authoritative'   => true,
+                'status'             => ExamStatus::Completed,
+                'source'             => ExamSource::Flutter,
+                'device_uuid'        => $data['device_uuid'],
+                'client_request_id'  => $data['client_request_id'],
+                'started_at'         => $data['started_at'],
+                'completed_at'       => $data['completed_at'],
+                'synced_at'          => now(),
+            ]);
+        } catch (QueryException $e) {
+            if ($this->isDuplicateEntry($e)) {
+                return Exam::where('client_request_id', $data['client_request_id'])->firstOrFail();
             }
+            throw $e;
         }
-
-        return null;
     }
 
-    private function studentKey(array $data): string
+    private function isDuplicateEntry(QueryException $e): bool
     {
-        if (! $data['is_manually_added_student']) {
-            return 'id:' . $data['student_id'];
-        }
-
-        return 'nid:' . ($data['manual_student_data']['national_id'] ?? '');
-    }
-
-    private function buildStudentKeys(array $exams): array
-    {
-        $counts = [];
-        foreach ($exams as $exam) {
-            $key            = $this->studentKey($exam);
-            $counts[$key]   = ($counts[$key] ?? 0) + 1;
-        }
-
-        return $counts;
+        return (int) ($e->errorInfo[1] ?? 0) === self::MYSQL_DUP_ENTRY;
     }
 }

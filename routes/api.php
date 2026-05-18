@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\ExamController;
+use App\Http\Controllers\Api\V1\RecitationQuestionController;
 use App\Http\Controllers\Api\V1\ReexamPermitController;
 use App\Http\Controllers\Api\V1\StudentController;
 use App\Http\Controllers\Api\V1\SyncController;
@@ -16,6 +18,12 @@ Route::prefix('v1')->group(function () {
 
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
+
+        // Device registration (FCM + last_user_id upsert)
+        Route::post('devices/register', [DeviceController::class, 'register']);
+
+        // Question bank — pulled once on first launch, cached locally
+        Route::get('recitation-questions', [RecitationQuestionController::class, 'index']);
 
         // Students (BR-SYNC-01, BR-STD-04)
         Route::get('students', [StudentController::class, 'index']);
@@ -33,8 +41,10 @@ Route::prefix('v1')->group(function () {
         Route::post('reexam-permits/verify', [ReexamPermitController::class, 'verify']);
         Route::get('reexam-permits/active', [ReexamPermitController::class, 'active']);
 
-        // Sync (BR-SYNC-03, BR-CONF-02~05)
+        // Sync — record-per-exam uploads + admin command channel
         Route::post('sync/exams', [SyncController::class, 'syncExams']);
         Route::get('sync/status', [SyncController::class, 'status']);
+        Route::get('sync/commands', [SyncController::class, 'commands']);
+        Route::post('sync/commands/{deviceCommand}/ack', [SyncController::class, 'ackCommand']);
     });
 });
