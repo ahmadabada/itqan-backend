@@ -23,7 +23,12 @@ class Show extends Component
             return;
         }
 
-        $this->exam = $exam->load(['student', 'examiner', 'questions', 'reexamPermit']);
+        $this->exam = $exam->load([
+            'student',
+            'examiner',
+            'questions.recitationQuestion',
+            'reexamPermit',
+        ]);
     }
 
     public function render()

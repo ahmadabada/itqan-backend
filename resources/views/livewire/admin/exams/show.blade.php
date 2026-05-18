@@ -103,10 +103,27 @@
 
         <div class="divide-y divide-neutral-100">
             @foreach($exam->questions as $q)
+                @php($rq = $q->recitationQuestion)
                 <div class="px-6 py-4">
-                    <div class="flex items-start justify-between mb-2">
-                        <h3 class="font-semibold text-neutral-900">السؤال {{ $q->question_number }}</h3>
-                        <p class="text-2xl font-black {{ $q->final_score >= 25 ? 'text-success-600' : ($q->final_score >= 15 ? 'text-warning-600' : 'text-danger-500') }}">
+                    <div class="flex items-start justify-between mb-2 gap-3">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="font-semibold text-neutral-900">السؤال {{ $q->question_number }}</h3>
+                            @if($rq?->group_number)
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200"
+                                      title="{{ $rq->group_number->fullLabel() }}">
+                                    {{ $rq->group_number->shortLabel() }}
+                                </span>
+                            @endif
+                            @if($rq)
+                                <span class="text-xs text-neutral-500">
+                                    سؤال #{{ $rq->question_number }} ·
+                                    {{ $rq->startSurahName() }} {{ $rq->start_ayah }}
+                                    ← {{ $rq->endSurahName() }} {{ $rq->end_ayah }}
+                                    <span class="text-neutral-400">(ص {{ $rq->start_page }}–{{ $rq->end_page }})</span>
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-2xl font-black {{ $q->final_score >= 25 ? 'text-success-600' : ($q->final_score >= 15 ? 'text-warning-600' : 'text-danger-500') }} whitespace-nowrap">
                             {{ number_format($q->final_score, 1) }}
                             <span class="text-xs font-normal text-neutral-400">/ 30</span>
                         </p>
