@@ -7,31 +7,39 @@ use App\Enums\ExamStatus;
 use App\Enums\ExamType;
 use App\Services\ScoreCalculator;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
+// authoritative_decision_by / authoritative_decision_at are intentionally NOT fillable —
+// they are written only through the admin merge flow.
 #[Fillable([
     'student_id', 'examiner_id', 'exam_type', 'selected_groups', 'attempt_number',
-    'rulings_score', 'total_score', 'is_approved',
-    'status', 'source', 'device_uuid', 'reexam_permit_id',
+    'rulings_score', 'total_score', 'is_approved', 'is_authoritative',
+    'status', 'source', 'device_uuid', 'client_request_id', 'reexam_permit_id',
     'conflict_reason', 'started_at', 'completed_at', 'synced_at',
 ])]
 class Exam extends Model
 {
+    use SoftDeletes;
+
     protected function casts(): array
     {
         return [
-            'exam_type'       => ExamType::class,
-            'status'          => ExamStatus::class,
-            'source'          => ExamSource::class,
-            'selected_groups' => 'array',
-            'rulings_score'   => 'decimal:2',
-            'total_score'     => 'decimal:2',
-            'is_approved'     => 'boolean',
-            'started_at'      => 'datetime',
-            'completed_at'    => 'datetime',
-            'synced_at'       => 'datetime',
+            'exam_type'                  => ExamType::class,
+            'status'                     => ExamStatus::class,
+            'source'                     => ExamSource::class,
+            'selected_groups'            => 'array',
+            'rulings_score'              => 'decimal:2',
+            'total_score'                => 'decimal:2',
+            'is_approved'                => 'boolean',
+            'is_authoritative'           => 'boolean',
+            'started_at'                 => 'datetime',
+            'completed_at'               => 'datetime',
+            'synced_at'                  => 'datetime',
+            'authoritative_decision_at'  => 'datetime',
         ];
     }
 
@@ -60,6 +68,11 @@ class Exam extends Model
         return $this->belongsTo(ReexamPermit::class);
     }
 
+    public function authoritativeDecisionBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'authoritative_decision_by');
+    }
+
     public function questions(): HasMany
     {
         return $this->hasMany(ExamQuestion::class)->orderBy('question_number');
@@ -68,5 +81,10 @@ class Exam extends Model
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    public function scopeAuthoritative(Builder $query): Builder
+    {
+        return $query->where('is_authoritative', true);
     }
 }

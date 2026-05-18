@@ -6,10 +6,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['student_id', 'granted_by', 'permit_code', 'signature', 'is_used', 'expires_at', 'used_at'])]
 class ReexamPermit extends Model
 {
+    use SoftDeletes;
+
     public $timestamps = false;
 
     protected function casts(): array
@@ -19,6 +22,7 @@ class ReexamPermit extends Model
             'expires_at' => 'datetime',
             'used_at'    => 'datetime',
             'created_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 

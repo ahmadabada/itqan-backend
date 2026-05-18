@@ -13,7 +13,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['national_id', 'first_name', 'second_name', 'third_name', 'family_name', 'phone', 'gender', 'password_hash', 'role', 'is_active'])]
+#[Fillable(['national_id', 'first_name', 'second_name', 'third_name', 'family_name', 'phone', 'gender', 'password_hash', 'role', 'is_active', 'fcm_token', 'fcm_platform', 'last_mobile_login_at'])]
 #[Hidden(['password_hash', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -52,12 +52,13 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'role'           => UserRole::class,
-            'gender'         => Gender::class,
-            'is_super_admin' => 'boolean',
-            'is_active'      => 'boolean',
-            'last_login_at'  => 'datetime',
-            'password_hash'  => 'hashed',
+            'role'                  => UserRole::class,
+            'gender'                => Gender::class,
+            'is_super_admin'        => 'boolean',
+            'is_active'             => 'boolean',
+            'last_login_at'         => 'datetime',
+            'last_mobile_login_at'  => 'datetime',
+            'password_hash'         => 'hashed',
         ];
     }
 
@@ -74,5 +75,15 @@ class User extends Authenticatable
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    public function createdStudents(): HasMany
+    {
+        return $this->hasMany(Student::class, 'created_by_user_id');
+    }
+
+    public function devices(): HasMany
+    {
+        return $this->hasMany(Device::class, 'last_user_id');
     }
 }
