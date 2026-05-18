@@ -93,7 +93,7 @@
                     <p class="text-xs text-neutral-500 mt-1 font-mono">
                         {{ $exam->student?->national_id }} ·
                         {{ $exam->exam_type?->label() }} ·
-                        {{ $exam->started_at?->format('Y-m-d H:i') }}
+                        {{ $exam->started_at?->format('Y-m-d g:i A') }}
                     </p>
                 </div>
 

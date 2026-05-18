@@ -102,7 +102,15 @@
                     <tr class="hover:bg-neutral-50 transition-colors">
                         <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration + ($exams->firstItem() ?? 1) - 1 }}</td>
                         <td class="px-4 py-3">
-                            <div class="font-medium text-neutral-900">{{ $exam->student?->fullName() }}</div>
+                            <div class="font-medium text-neutral-900">
+                                @if($exam->student)
+                                    <a href="{{ route('admin.students.show', $exam->student->id) }}" wire:navigate class="hover:text-primary-600 hover:underline transition-colors">
+                                        {{ $exam->student->fullName() }}
+                                    </a>
+                                @else
+                                    —
+                                @endif
+                            </div>
                             <div class="text-xs text-neutral-400 font-mono mt-0.5">{{ $exam->student?->national_id ?? '—' }}</div>
                         </td>
                         <td class="px-4 py-3 text-neutral-700">{{ $exam->examiner?->fullName() ?? '—' }}</td>
@@ -133,7 +141,7 @@
                             </span>
                         </td>
                         <td class="px-4 py-3 text-xs text-neutral-500 whitespace-nowrap">
-                            {{ $exam->started_at?->format('Y-m-d H:i') }}
+                            {{ $exam->started_at?->format('Y-m-d g:i A') }}
                         </td>
                         <td class="px-4 py-3 text-end">
                             <a

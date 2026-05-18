@@ -36,7 +36,13 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-3 mb-2">
                                 <span class="text-base font-bold text-neutral-900">
-                                    {{ $exam->student?->fullName() ?? 'طالب غير معروف' }}
+                                    @if($exam->student)
+                                        <a href="{{ route('admin.students.show', $exam->student->id) }}" wire:navigate class="hover:text-primary-600 hover:underline transition-colors">
+                                            {{ $exam->student->fullName() }}
+                                        </a>
+                                    @else
+                                        طالب غير معروف
+                                    @endif
                                 </span>
                                 <span class="text-xs text-neutral-400 font-mono">
                                     {{ $exam->student?->national_id }}
@@ -81,7 +87,7 @@
                                 </div>
                                 <div>
                                     <span class="text-neutral-400">تاريخ الاختبار:</span>
-                                    {{ $exam->completed_at?->format('Y-m-d H:i') }}
+                                    {{ $exam->completed_at?->format('Y-m-d g:i A') }}
                                 </div>
                             </div>
 

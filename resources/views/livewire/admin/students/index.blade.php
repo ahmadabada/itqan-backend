@@ -50,7 +50,11 @@
                                 <span class="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">بدون هوية</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 font-medium text-neutral-900">{{ $student->fullName() }}</td>
+                        <td class="px-4 py-3 font-medium text-neutral-900">
+                            <a href="{{ route('admin.students.show', $student->id) }}" wire:navigate class="hover:text-primary-600 hover:underline transition-colors">
+                                {{ $student->fullName() }}
+                            </a>
+                        </td>
                         <td class="px-4 py-3">
                             @if($student->gender)
                                 <span class="text-xs px-2 py-0.5 rounded-full {{ $student->gender->value === 'male' ? 'bg-sky-50 text-sky-700' : 'bg-pink-50 text-pink-700' }}">

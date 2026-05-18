@@ -47,7 +47,7 @@
                             {{ $op->performedBy ? trim(($op->performedBy->first_name ?? '') . ' ' . ($op->performedBy->family_name ?? '')) : '—' }}
                         </td>
                         <td class="px-4 py-3 text-neutral-500 text-xs">
-                            {{ $op->performed_at?->format('Y-m-d H:i') ?? '—' }}
+                            {{ $op->performed_at?->format('Y-m-d g:i A') ?? '—' }}
                         </td>
                         <td class="px-4 py-3">
                             @if($op->undone_at)

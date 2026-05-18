@@ -76,11 +76,11 @@
         <div class="grid grid-cols-2 md:grid-cols-3 divide-x divide-x-reverse divide-neutral-100 border-t border-neutral-100 bg-neutral-50/50">
             <div class="px-6 py-3">
                 <p class="text-xs text-neutral-400">بدأ</p>
-                <p class="text-sm text-neutral-700 mt-0.5">{{ $exam->started_at?->format('Y-m-d H:i') ?? '—' }}</p>
+                <p class="text-sm text-neutral-700 mt-0.5">{{ $exam->started_at?->format('Y-m-d g:i A') ?? '—' }}</p>
             </div>
             <div class="px-6 py-3">
                 <p class="text-xs text-neutral-400">انتهى</p>
-                <p class="text-sm text-neutral-700 mt-0.5">{{ $exam->completed_at?->format('Y-m-d H:i') ?? '—' }}</p>
+                <p class="text-sm text-neutral-700 mt-0.5">{{ $exam->completed_at?->format('Y-m-d g:i A') ?? '—' }}</p>
             </div>
             <div class="px-6 py-3">
                 <p class="text-xs text-neutral-400">المدة</p>

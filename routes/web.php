@@ -12,6 +12,7 @@ use App\Livewire\Admin\Permits\Index as AdminPermits;
 use App\Livewire\Admin\RecitationQuestions\Index as AdminRecitationQuestions;
 use App\Livewire\Admin\Settings\Index as AdminSettings;
 use App\Livewire\Admin\Students\Index as AdminStudents;
+use App\Livewire\Admin\Students\Show as AdminStudentShow;
 use App\Livewire\Admin\Users\Index as AdminUsers;
 use App\Livewire\Admin\Users\Trashed as AdminUsersTrashed;
 use App\Livewire\Auth\Login;
@@ -55,6 +56,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('users',             AdminUsers::class)->name('users');
     Route::get('users/trashed',     AdminUsersTrashed::class)->name('users.trashed');
     Route::get('students',              AdminStudents::class)->name('students');
+    Route::get('students/{student}',    AdminStudentShow::class)->name('students.show')->whereNumber('student');
     Route::get('recitation-questions',  AdminRecitationQuestions::class)->name('recitation-questions');
     Route::get('permits',               AdminPermits::class)->name('permits');
     Route::get('exams',             AdminExamsIndex::class)->name('exams.index');

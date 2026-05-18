@@ -76,7 +76,11 @@
                             <tr class="hover:bg-neutral-50">
                                 <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration }}</td>
                                 <td class="px-4 py-3">
-                                    <p class="font-medium text-neutral-900">{{ $permit->student->fullName() }}</p>
+                                    <p class="font-medium text-neutral-900">
+                                        <a href="{{ route('admin.students.show', $permit->student->id) }}" wire:navigate class="hover:text-primary-600 hover:underline transition-colors">
+                                            {{ $permit->student->fullName() }}
+                                        </a>
+                                    </p>
                                 </td>
                                 <td class="px-4 py-3 font-mono text-sm text-neutral-700">{{ $permit->permit_code }}</td>
                                 <td class="px-4 py-3">
