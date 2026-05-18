@@ -94,7 +94,7 @@
                                             {{ number_format($q->final_score, 1) }}/30
                                             @if($q->errors_count || $q->warnings_count || $q->continuations_count)
                                                 <span class="text-neutral-400">
-                                                    (أخطاء: {{ $q->errors_count }}, تنبيهات: {{ $q->warnings_count }}, استرسال: {{ $q->continuations_count }})
+                                                    (فتح: {{ $q->errors_count }}, تنبيهات: {{ $q->warnings_count }}, تردد: {{ $q->continuations_count }})
                                                 </span>
                                             @endif
                                         </div>

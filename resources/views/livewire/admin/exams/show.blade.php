@@ -131,7 +131,7 @@
                     <div class="flex items-center gap-4 text-sm">
                         <div class="flex items-center gap-1.5">
                             <span class="w-2 h-2 rounded-full bg-exam-error"></span>
-                            <span class="text-neutral-500">أخطاء:</span>
+                            <span class="text-neutral-500">فتح:</span>
                             <span class="font-bold text-exam-error">{{ $q->errors_count }}</span>
                             <span class="text-xs text-neutral-400">(−{{ $q->errors_count * 2 }})</span>
                         </div>
@@ -143,7 +143,7 @@
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="w-2 h-2 rounded-full bg-exam-continuation"></span>
-                            <span class="text-neutral-500">استرسالات:</span>
+                            <span class="text-neutral-500">تردد:</span>
                             <span class="font-bold text-exam-continuation">{{ $q->continuations_count }}</span>
                             <span class="text-xs text-neutral-400">(−{{ $q->continuations_count * 0.5 }})</span>
                         </div>

@@ -655,7 +655,7 @@
             <div class="flex items-center gap-2 sm:gap-3 text-sm">
                 <div class="flex items-center gap-1.5 bg-red-50/70 px-3 py-1.5 rounded-full">
                     <span class="font-bold text-exam-error tabular-nums" x-text="q.errors_count"></span>
-                    <span class="text-exam-error/80 text-xs">خطأ</span>
+                    <span class="text-exam-error/80 text-xs">فتح</span>
                 </div>
                 <div class="flex items-center gap-1.5 bg-amber-50/70 px-3 py-1.5 rounded-full">
                     <span class="font-bold text-exam-warning tabular-nums" x-text="q.warnings_count"></span>
@@ -663,7 +663,7 @@
                 </div>
                 <div class="flex items-center gap-1.5 bg-cyan-50/70 px-3 py-1.5 rounded-full">
                     <span class="font-bold text-exam-continuation tabular-nums" x-text="q.continuations_count"></span>
-                    <span class="text-exam-continuation/80 text-xs">استرسال</span>
+                    <span class="text-exam-continuation/80 text-xs">تردد</span>
                 </div>
             </div>
 
@@ -681,7 +681,7 @@
                                transition-all duration-200"
                     >
                         <span class="text-2xl font-black text-exam-error tabular-nums">−2</span>
-                        <span class="text-base font-bold text-exam-error">خطأ جلي</span>
+                        <span class="text-base font-bold text-exam-error">فتح على الطالب</span>
                     </button>
                     <button
                         @click="undo('error')"
@@ -705,7 +705,7 @@
                                transition-all duration-200"
                     >
                         <span class="text-2xl font-black text-exam-warning tabular-nums">−1</span>
-                        <span class="text-base font-bold text-exam-warning">تنبيه / تردد</span>
+                        <span class="text-base font-bold text-exam-warning">تنبيه</span>
                     </button>
                     <button
                         @click="undo('warning')"
@@ -729,7 +729,7 @@
                                transition-all duration-200"
                     >
                         <span class="text-2xl font-black text-exam-continuation tabular-nums">−0.5</span>
-                        <span class="text-base font-bold text-exam-continuation">استرسال خاطئ</span>
+                        <span class="text-base font-bold text-exam-continuation">تردد / استرسال</span>
                     </button>
                     <button
                         @click="undo('continuation')"
@@ -848,7 +848,7 @@
                         <div class="text-neutral-700">
                             <span x-text="'السؤال ' + n"></span>
                             <span class="text-xs text-neutral-400 ms-2 tabular-nums"
-                                  x-text="'(' + qs[n].errors_count + 'خ ' + qs[n].warnings_count + 'ت ' + qs[n].continuations_count + 'س)'"></span>
+                                  x-text="'(' + qs[n].errors_count + 'ف ' + qs[n].warnings_count + 'ت ' + qs[n].continuations_count + 'س)'"></span>
                         </div>
                         <span class="font-bold tabular-nums text-neutral-900" x-text="score(n).toFixed(1)"></span>
                     </div>
