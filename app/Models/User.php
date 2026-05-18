@@ -8,15 +8,16 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['national_id', 'first_name', 'second_name', 'third_name', 'family_name', 'gender', 'password_hash', 'role', 'is_active'])]
+#[Fillable(['national_id', 'first_name', 'second_name', 'third_name', 'family_name', 'phone', 'gender', 'password_hash', 'role', 'is_active'])]
 #[Hidden(['password_hash', 'remember_token'])]
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     public function getAuthPassword(): string
     {

@@ -28,6 +28,7 @@ class Index extends Component
     public string $form_second_name  = '';
     public string $form_third_name   = '';
     public string $form_family_name  = '';
+    public string $form_phone        = '';
     public string $form_gender       = '';
     public string $form_role         = '';
     public string $form_password     = '';
@@ -71,21 +72,25 @@ class Index extends Component
             ? [UserRole::Admin->value, UserRole::Examiner->value]
             : [UserRole::Examiner->value]; // BR-USR-04
 
+        // BR-USR-09: `unique:users,national_id` queries the DB directly (ignores
+        // SoftDeletes scope) — a soft-deleted national_id stays reserved.
         $this->validate([
             'form_national_id' => ['required', 'digits:9', 'unique:users,national_id'],
             'form_first_name'  => ['required', 'string', 'max:50'],
             'form_second_name' => ['nullable', 'string', 'max:50'],
             'form_third_name'  => ['nullable', 'string', 'max:50'],
             'form_family_name' => ['required', 'string', 'max:50'],
+            'form_phone'       => ['nullable', 'string', 'max:30'],
             'form_gender'      => ['required', 'in:male,female'],
             'form_role'        => ['required', 'in:' . implode(',', $allowedRoles)],
             'form_password'    => ['required', 'string', 'min:8'],
         ], [
             'form_national_id.required' => 'رقم الهوية مطلوب.',
             'form_national_id.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
-            'form_national_id.unique'   => 'رقم الهوية مسجّل مسبقاً.',
+            'form_national_id.unique'   => 'رقم الهوية مسجّل مسبقاً (حتى لو كان محذوفاً).',
             'form_first_name.required'  => 'الاسم الأول مطلوب.',
             'form_family_name.required' => 'اسم العائلة مطلوب.',
+            'form_phone.max'            => 'رقم الجوال طويل جداً.',
             'form_gender.required'      => 'الجنس مطلوب.',
             'form_role.required'        => 'الدور مطلوب.',
             'form_role.in'              => 'الدور غير مسموح به.',
@@ -99,6 +104,7 @@ class Index extends Component
             'second_name'   => $this->form_second_name ?: null,
             'third_name'    => $this->form_third_name ?: null,
             'family_name'   => $this->form_family_name,
+            'phone'         => $this->form_phone ?: null,
             'gender'        => $this->form_gender,
             'role'          => $this->form_role,
             'password_hash' => $this->form_password,
@@ -193,6 +199,8 @@ class Index extends Component
         $this->deleteUserId = $userId;
     }
 
+    // BR-USR-09: Soft delete only — DB row stays, so FKs on exams/permits/audit
+    // logs remain satisfied. Use the trashed page to restore.
     public function deleteUser(): void
     {
         $currentUser = Auth::user();
@@ -216,20 +224,6 @@ class Index extends Component
         if ($target->id === $currentUser->id) {
             $this->deleteUserId = null;
             $this->dispatch('notify', type: 'danger', message: 'لا يمكنك حذف حسابك.');
-            return;
-        }
-
-        // BR-USR-08: Preserve historical records — refuse delete if user has any
-        // related exams, granted permits, or audit logs. Suggest disabling instead.
-        $blockers = [];
-        if ($target->exams()->exists())          $blockers[] = 'اختبارات';
-        if ($target->grantedPermits()->exists()) $blockers[] = 'أذونات إعادة';
-        if ($target->auditLogs()->exists())      $blockers[] = 'سجلات تدقيق';
-
-        if (! empty($blockers)) {
-            $this->deleteUserId = null;
-            $this->dispatch('notify', type: 'danger',
-                message: 'لا يمكن الحذف — هذا المستخدم له سجل (' . implode('، ', $blockers) . '). عطّله بدلاً من الحذف للحفاظ على السجلات.');
             return;
         }
 
@@ -284,6 +278,7 @@ class Index extends Component
         $this->form_second_name = '';
         $this->form_third_name  = '';
         $this->form_family_name = '';
+        $this->form_phone       = '';
         $this->form_gender      = '';
         $this->form_role        = '';
         $this->form_password    = '';

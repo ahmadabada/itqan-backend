@@ -6,9 +6,14 @@
             <h2 class="text-2xl font-bold text-neutral-900">المستخدمون</h2>
             <p class="text-neutral-500 text-sm mt-0.5">الأدمنز والمختبرون</p>
         </div>
-        <flux:button wire:click="openCreateModal" variant="primary" size="sm">
-            إضافة مستخدم
-        </flux:button>
+        <div class="flex items-center gap-2">
+            <flux:button :href="route('admin.users.trashed')" variant="outline" size="sm" wire:navigate>
+                المحذوفون
+            </flux:button>
+            <flux:button wire:click="openCreateModal" variant="primary" size="sm">
+                إضافة مستخدم
+            </flux:button>
+        </div>
     </div>
 
     {{-- Filters --}}
@@ -34,6 +39,7 @@
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">رقم الهوية</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الاسم</th>
+                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">الجوال</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الجنس</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الدور</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الحالة</th>
@@ -47,6 +53,9 @@
                         <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration }}</td>
                         <td class="px-4 py-3 font-mono text-neutral-700">{{ $user->national_id }}</td>
                         <td class="px-4 py-3 font-medium text-neutral-900">{{ $user->fullName() }}</td>
+                        <td class="px-4 py-3 font-mono text-neutral-700">
+                            {{ $user->phone ?: '—' }}
+                        </td>
                         <td class="px-4 py-3">
                             @if($user->gender)
                                 <span class="text-xs px-2 py-0.5 rounded-full {{ $user->gender->value === 'male' ? 'bg-sky-50 text-sky-700' : 'bg-pink-50 text-pink-700' }}">
@@ -109,7 +118,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-neutral-400">
+                        <td colspan="9" class="px-4 py-8 text-center text-neutral-400">
                             لا يوجد مستخدمون
                         </td>
                     </tr>
@@ -173,14 +182,22 @@
                         </flux:field>
                     </div>
 
-                    <flux:field>
-                        <flux:label>الجنس</flux:label>
-                        <flux:select wire:model="form_gender" placeholder="اختر الجنس">
-                            <flux:select.option value="male">ذكر</flux:select.option>
-                            <flux:select.option value="female">أنثى</flux:select.option>
-                        </flux:select>
-                        <flux:error name="form_gender" />
-                    </flux:field>
+                    <div class="grid grid-cols-2 gap-4">
+                        <flux:field>
+                            <flux:label>الجنس</flux:label>
+                            <flux:select wire:model="form_gender" placeholder="اختر الجنس">
+                                <flux:select.option value="male">ذكر</flux:select.option>
+                                <flux:select.option value="female">أنثى</flux:select.option>
+                            </flux:select>
+                            <flux:error name="form_gender" />
+                        </flux:field>
+
+                        <flux:field>
+                            <flux:label>رقم الجوال <span class="text-neutral-400 text-xs font-normal">(اختياري)</span></flux:label>
+                            <flux:input wire:model="form_phone" type="tel" inputmode="tel" />
+                            <flux:error name="form_phone" />
+                        </flux:field>
+                    </div>
 
                     <flux:field>
                         <flux:label>كلمة المرور المؤقتة</flux:label>
@@ -243,7 +260,7 @@
                         <span class="text-danger-500 text-xl">!</span>
                     </div>
                     <h3 class="text-lg font-bold text-neutral-900 mb-1">تأكيد الحذف</h3>
-                    <p class="text-sm text-neutral-500">هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع.</p>
+                    <p class="text-sm text-neutral-500">سيتم نقل المستخدم لقائمة المحذوفين. يمكن استعادته لاحقاً من صفحة "المحذوفون".</p>
                 </div>
 
                 <div class="flex gap-3 px-6 pb-5">
