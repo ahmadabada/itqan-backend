@@ -21,8 +21,8 @@
     </div>
 
     {{-- Table --}}
-    <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-        <table class="w-full text-sm">
+    <div class="bg-white rounded-xl border border-neutral-200 overflow-x-auto">
+        <table class="w-full text-sm whitespace-nowrap">
             <thead class="bg-neutral-50 border-b border-neutral-200">
                 <tr>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>

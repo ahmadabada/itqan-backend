@@ -28,7 +28,7 @@
     {{-- Table --}}
     <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden">
         <div class="overflow-x-auto">
-        <table class="w-full text-sm min-w-[600px]">
+        <table class="w-full text-sm min-w-[600px] whitespace-nowrap">
             <thead class="bg-neutral-50 border-b border-neutral-200">
                 <tr>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
