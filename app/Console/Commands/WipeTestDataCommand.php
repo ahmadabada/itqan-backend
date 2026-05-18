@@ -17,9 +17,15 @@ class WipeTestDataCommand extends Command
 
     public function handle(): int
     {
-        if (app()->environment('production')) {
-            $this->error('Refusing to run in production.');
+        $isProduction = app()->environment('production');
+
+        if ($isProduction && ! $this->option('force')) {
+            $this->error('APP_ENV=production. Pass --force to override (this is destructive).');
             return self::FAILURE;
+        }
+
+        if ($isProduction) {
+            $this->warn('!! Running destructive wipe with --force in APP_ENV=production !!');
         }
 
         if (! $this->option('force') && ! $this->confirm('This will permanently delete all exams, students, permits, devices, and non-super-admin users. Continue?')) {
