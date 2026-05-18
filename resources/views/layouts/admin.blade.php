@@ -95,9 +95,7 @@
 
             {{-- Brand --}}
             <div class="px-5 py-5 border-b border-neutral-200 flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center text-white font-black text-base shadow-sm shadow-primary-500/30">
-                    إ
-                </div>
+                <img src="{{ asset('images/logo.png') }}" alt="أكاديمية الإتقان" class="w-10 h-10 object-contain">
                 <div class="leading-tight flex-1 min-w-0">
                     <p class="text-sm font-bold text-neutral-900 truncate">أكاديمية الإتقان</p>
                     <p class="text-[10px] text-neutral-400 mt-0.5">نظام الاختبارات القرآنية</p>
