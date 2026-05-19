@@ -19,9 +19,9 @@
         </div>
 
         <div class="bg-white rounded-xl border border-neutral-200 p-4 sm:p-5">
-            <p class="text-xs sm:text-sm text-neutral-500 mb-1">بانتظار المراجعة</p>
-            <p class="text-2xl sm:text-3xl font-bold {{ $pendingExams > 0 ? 'text-warning-500' : 'text-neutral-400' }}">
-                {{ $pendingExams }}
+            <p class="text-xs sm:text-sm text-neutral-500 mb-1">الاختبارات المعتمدة</p>
+            <p class="text-2xl sm:text-3xl font-bold text-success-500">
+                {{ number_format($approvedExams) }}
             </p>
         </div>
 

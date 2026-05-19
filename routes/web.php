@@ -4,7 +4,6 @@ use App\Enums\UserRole;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\Devices\Index as AdminDevices;
 use App\Livewire\Admin\Exams\Index as AdminExamsIndex;
-use App\Livewire\Admin\Exams\PendingReview as AdminPendingReview;
 use App\Livewire\Admin\Exams\Show as AdminExamShow;
 use App\Livewire\Admin\Merges\History as AdminMergesHistory;
 use App\Livewire\Admin\Merges\Index as AdminMerges;
@@ -61,7 +60,6 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('recitation-questions',  AdminRecitationQuestions::class)->name('recitation-questions');
     Route::get('permits',               AdminPermits::class)->name('permits');
     Route::get('exams',             AdminExamsIndex::class)->name('exams.index');
-    Route::get('exams/pending',     AdminPendingReview::class)->name('exams.pending');
     Route::get('exams/{exam}',      AdminExamShow::class)->name('exams.show')->whereNumber('exam');
     Route::get('merges',                       AdminMerges::class)->name('merges');
     Route::get('merges/history',               AdminMergesHistory::class)->name('merges.history');

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\ExamStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\SyncExamsRequest;
 use App\Models\DeviceCommand;
@@ -34,7 +33,9 @@ class SyncController extends Controller
     public function status(Request $request): JsonResponse
     {
         return response()->json([
-            'pending_reviews_count' => Exam::where('status', ExamStatus::PendingReview)->count(),
+            // Kept for mobile-API backward-compat; the new lifecycle removes the
+            // pending-review state, so there is never anything to surface here.
+            'pending_reviews_count' => 0,
             'server_time'           => now()->toISOString(),
             'students_last_updated' => Student::max('updated_at'),
             'permits_last_updated'  => ReexamPermit::max('created_at'),

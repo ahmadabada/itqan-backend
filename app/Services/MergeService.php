@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ExamStatus;
 use App\Models\AuditLog;
 use App\Models\Exam;
 use App\Models\MergeOperation;
@@ -54,7 +55,8 @@ class MergeService
                     'family_name', 'gender', 'master_id', 'merged_at', 'merged_by_admin_id',
                 ]))->all(),
                 'exams' => $exams->map(fn($e) => $e->only([
-                    'id', 'is_authoritative', 'authoritative_decision_by', 'authoritative_decision_at',
+                    'id', 'status', 'is_authoritative', 'is_approved',
+                    'authoritative_decision_by', 'authoritative_decision_at',
                 ]))->all(),
             ];
 
@@ -79,14 +81,21 @@ class MergeService
                 }
             }
 
-            // Reset authoritative flag across all affected exams, then set the chosen one.
+            // One master = one canonical exam. Everything in the merged set is
+            // set to Excluded first, then the chosen one is promoted to Approved.
+            // The legacy is_approved / is_authoritative columns are mirrored for
+            // backward-compat with any external readers still on the old schema.
             Exam::whereIn('student_id', $studentIds)->update([
+                'status'           => ExamStatus::Excluded,
                 'is_authoritative' => false,
+                'is_approved'      => false,
             ]);
 
             if ($authoritativeExamId !== null) {
                 Exam::where('id', $authoritativeExamId)->update([
+                    'status'                     => ExamStatus::Approved,
                     'is_authoritative'           => true,
+                    'is_approved'                => true,
                     'authoritative_decision_by'  => $adminUserId,
                     'authoritative_decision_at'  => $now,
                 ]);
@@ -143,8 +152,13 @@ class MergeService
             }
 
             foreach ($snapshot['exams'] ?? [] as $row) {
+                $current = Exam::find($row['id']);
                 Exam::where('id', $row['id'])->update([
+                    // Snapshot fields may be absent on older merges; fall back to
+                    // the current value so undo never clobbers a missing key.
+                    'status'                     => $row['status'] ?? $current?->status?->value,
                     'is_authoritative'           => $row['is_authoritative'],
+                    'is_approved'                => $row['is_approved'] ?? $current?->is_approved,
                     'authoritative_decision_by'  => $row['authoritative_decision_by'],
                     'authoritative_decision_at'  => $row['authoritative_decision_at'],
                 ]);

@@ -32,7 +32,6 @@
                 'title' => 'الاختبارات',
                 'items' => [
                     ['route' => 'admin.exams.index',   'label' => 'كل الاختبارات', 'pattern' => 'admin/exams', 'icon' => 'list'],
-                    ['route' => 'admin.exams.pending', 'label' => 'مراجعة التعارضات', 'pattern' => 'admin/exams/pending*', 'icon' => 'alert', 'badge_route' => 'pending'],
                 ],
             ],
             [
@@ -54,8 +53,6 @@
                 ],
             ],
         ];
-
-        $pendingCount = \App\Models\Exam::where('status', 'pending_review')->count();
 
         $iconPaths = [
             'home'   => '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12 12 2.25 21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>',
@@ -137,11 +134,6 @@
                                     {!! $iconPaths[$item['icon']] ?? '' !!}
                                 </svg>
                                 <span class="flex-1">{{ $item['label'] }}</span>
-                                @if(($item['badge_route'] ?? null) === 'pending' && $pendingCount > 0)
-                                    <span class="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold">
-                                        {{ $pendingCount }}
-                                    </span>
-                                @endif
                             </a>
                         @endforeach
                     </div>
@@ -199,17 +191,6 @@
                 </div>
 
                 <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                    @if($pendingCount > 0)
-                        <a href="{{ route('admin.exams.pending') }}" wire:navigate
-                           class="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-medium transition-colors"
-                           title="{{ $pendingCount }} اختبار بانتظار المراجعة"
-                        >
-                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                            <span class="hidden sm:inline">{{ $pendingCount }} اختبار بانتظار المراجعة</span>
-                            <span class="sm:hidden font-bold">{{ $pendingCount }}</span>
-                        </a>
-                    @endif
-
                     @auth
                         <span class="text-xs text-neutral-400 hidden md:block">
                             مرحباً، <span class="text-neutral-700 font-medium">{{ auth()->user()->first_name }}</span>

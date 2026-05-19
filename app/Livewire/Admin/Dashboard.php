@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Enums\ExamStatus;
 use App\Models\Exam;
 use App\Models\Student;
 use App\Models\User;
@@ -21,7 +22,7 @@ class Dashboard extends Component
             'totalStudents' => Student::count(),
             'totalUsers'    => User::where('is_super_admin', false)->count(),
             'totalExams'    => Exam::count(),
-            'pendingExams'  => Exam::where('status', 'pending_review')->count(),
+            'approvedExams' => Exam::where('status', ExamStatus::Approved)->count(),
         ]);
     }
 }
