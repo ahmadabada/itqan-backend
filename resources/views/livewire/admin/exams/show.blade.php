@@ -59,11 +59,31 @@
                 <p class="text-xs text-neutral-400 mb-1">الطالب</p>
                 <p class="font-semibold text-neutral-900">{{ $exam->student?->fullName() }}</p>
                 <p class="text-xs text-neutral-500 font-mono mt-0.5">{{ $exam->student?->national_id }}</p>
-                @if($exam->student?->gender)
-                    <span class="inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full {{ $exam->student->gender->value === 'male' ? 'bg-sky-50 text-sky-700' : 'bg-pink-50 text-pink-700' }}">
-                        {{ $exam->student->gender->label() }}
-                    </span>
-                @endif
+                <div class="flex items-center gap-2 flex-wrap mt-2">
+                    @if($exam->student?->gender)
+                        <span class="text-xs px-2 py-0.5 rounded-full {{ $exam->student->gender->value === 'male' ? 'bg-sky-50 text-sky-700' : 'bg-pink-50 text-pink-700' }}">
+                            {{ $exam->student->gender->label() }}
+                        </span>
+                    @endif
+                    @if($exam->student?->student_zone)
+                        @php
+                            $zones = [
+                                'East Gaza' => 'شرق غزة',
+                                'West Gaza' => 'غرب غزة',
+                                'North Gaza' => 'شمال غزة',
+                                'South Gaza' => 'جنوب غزة',
+                            ];
+                        @endphp
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">
+                            منطقة: {{ $zones[$exam->student->student_zone] ?? $exam->student->student_zone }}
+                        </span>
+                    @endif
+                    @if($exam->student?->is_recite_before)
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
+                            سبق له التسميع
+                        </span>
+                    @endif
+                </div>
             </div>
             <div class="px-6 py-4">
                 <p class="text-xs text-neutral-400 mb-1">المختبر</p>

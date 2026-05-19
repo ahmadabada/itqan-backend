@@ -131,6 +131,31 @@
                                     </span>
                                 @endif
                             </div>
+                            <div class="flex items-center gap-1.5 flex-wrap mt-1">
+                                @if($effective?->gender)
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded {{ $effective->gender->value === 'male' ? 'bg-sky-50 text-sky-700' : 'bg-pink-50 text-pink-700' }}">
+                                        {{ $effective->gender->label() }}
+                                    </span>
+                                @endif
+                                @if($effective?->student_zone)
+                                    @php
+                                        $zones = [
+                                            'East Gaza' => 'شرق غزة',
+                                            'West Gaza' => 'غرب غزة',
+                                            'North Gaza' => 'شمال غزة',
+                                            'South Gaza' => 'جنوب غزة',
+                                        ];
+                                    @endphp
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600">
+                                        {{ $zones[$effective->student_zone] ?? $effective->student_zone }}
+                                    </span>
+                                @endif
+                                @if($effective?->is_recite_before)
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">
+                                        سبق له التسميع
+                                    </span>
+                                @endif
+                            </div>
                         </td>
                         <td class="px-4 py-3 text-neutral-700">{{ $exam->examiner?->fullName() ?? '—' }}</td>
                         <td class="px-4 py-3 text-neutral-600 text-xs">{{ $exam->exam_type?->label() }}</td>
