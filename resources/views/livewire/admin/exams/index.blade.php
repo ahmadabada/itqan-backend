@@ -99,19 +99,38 @@
             </thead>
             <tbody class="divide-y divide-neutral-100">
                 @forelse($exams as $exam)
+                    @php
+                        // When the exam belongs to a merged student, surface the master's
+                        // identity here (the merged row should not have an independent UI).
+                        $effective = $exam->student?->master ?? $exam->student;
+                        $isFromMerge = (bool) $exam->student?->master_id;
+                    @endphp
                     <tr class="hover:bg-neutral-50 transition-colors">
                         <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration + ($exams->firstItem() ?? 1) - 1 }}</td>
                         <td class="px-4 py-3">
-                            <div class="font-medium text-neutral-900">
-                                @if($exam->student)
-                                    <a href="{{ route('admin.students.show', $exam->student->id) }}" wire:navigate class="hover:text-primary-600 hover:underline transition-colors">
-                                        {{ $exam->student->fullName() }}
+                            <div class="font-medium text-neutral-900 flex items-center gap-2 flex-wrap">
+                                @if($effective)
+                                    <a href="{{ route('admin.students.show', $effective->id) }}" wire:navigate class="hover:text-primary-600 hover:underline transition-colors">
+                                        {{ $effective->fullName() }}
                                     </a>
                                 @else
                                     —
                                 @endif
+                                @if($exam->status?->value === 'approved')
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">معتمد</span>
+                                @elseif($exam->status?->value === 'excluded')
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-500 font-medium">مستبعد</span>
+                                @endif
                             </div>
-                            <div class="text-xs text-neutral-400 font-mono mt-0.5">{{ $exam->student?->national_id ?? '—' }}</div>
+                            <div class="text-xs text-neutral-400 font-mono mt-0.5 flex items-center gap-2">
+                                <span>{{ $effective?->national_id ?? '—' }}</span>
+                                @if($isFromMerge)
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-500"
+                                          title="هذا الاختبار مأخوذ من سجل اندمج في #{{ $effective?->id }}">
+                                        اختبار سابق
+                                    </span>
+                                @endif
+                            </div>
                         </td>
                         <td class="px-4 py-3 text-neutral-700">{{ $exam->examiner?->fullName() ?? '—' }}</td>
                         <td class="px-4 py-3 text-neutral-600 text-xs">{{ $exam->exam_type?->label() }}</td>

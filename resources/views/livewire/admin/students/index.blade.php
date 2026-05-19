@@ -23,6 +23,15 @@
             <flux:select.option value="male">ذكر</flux:select.option>
             <flux:select.option value="female">أنثى</flux:select.option>
         </flux:select>
+
+        <label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 bg-white cursor-pointer hover:bg-neutral-50 transition-colors text-sm">
+            <input
+                type="checkbox"
+                wire:model.live="showMerged"
+                class="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+            >
+            <span class="text-neutral-700">إظهار المدموجين</span>
+        </label>
     </div>
 
     {{-- Table --}}
@@ -157,13 +166,39 @@
                         </flux:field>
                     </div>
 
+                    <div class="grid grid-cols-2 gap-4">
+                        <flux:field>
+                            <flux:label>الجنس</flux:label>
+                            <flux:select wire:model="form_gender" placeholder="اختر الجنس">
+                                <flux:select.option value="male">ذكر</flux:select.option>
+                                <flux:select.option value="female">أنثى</flux:select.option>
+                            </flux:select>
+                            <flux:error name="form_gender" />
+                        </flux:field>
+
+                        <flux:field>
+                            <flux:label>منطقة الطالب</flux:label>
+                            <flux:select wire:model="form_student_zone" placeholder="اختر منطقة الطالب">
+                                <flux:select.option value="East Gaza">شرق غزة</flux:select.option>
+                                <flux:select.option value="West Gaza">غرب غزة</flux:select.option>
+                                <flux:select.option value="North Gaza">شمال غزة</flux:select.option>
+                                <flux:select.option value="South Gaza">جنوب غزة</flux:select.option>
+                            </flux:select>
+                            <flux:error name="form_student_zone" />
+                        </flux:field>
+                    </div>
+
                     <flux:field>
-                        <flux:label>الجنس</flux:label>
-                        <flux:select wire:model="form_gender" placeholder="اختر الجنس">
-                            <flux:select.option value="male">ذكر</flux:select.option>
-                            <flux:select.option value="female">أنثى</flux:select.option>
-                        </flux:select>
-                        <flux:error name="form_gender" />
+                        <flux:label>السرد المسبق</flux:label>
+                        <label class="flex items-center gap-3 px-4 py-3 rounded-lg border border-neutral-200 bg-white cursor-pointer hover:bg-neutral-50 transition-colors text-sm mt-1">
+                            <input
+                                type="checkbox"
+                                wire:model="form_is_recite_before"
+                                class="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                            >
+                            <span class="text-neutral-700">سبق له التسميع؟</span>
+                        </label>
+                        <flux:error name="form_is_recite_before" />
                     </flux:field>
 
                     <div class="flex justify-end gap-3 pt-2">

@@ -81,7 +81,7 @@ class Index extends Component
         $sortBy      = in_array($this->sortBy, $allowedSort) ? $this->sortBy : 'created_at';
 
         $exams = Exam::query()
-            ->with(['student', 'examiner'])
+            ->with(['student.master', 'examiner'])
             ->when($this->search, fn($q) => $q->whereHas('student', fn($s) =>
                 ArabicSearch::applyTo(
                     $s,

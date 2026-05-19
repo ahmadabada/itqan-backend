@@ -18,8 +18,9 @@ class Index extends Component
 {
     use WithPagination;
 
-    public string $search       = '';
-    public string $genderFilter = '';
+    public string $search        = '';
+    public string $genderFilter  = '';
+    public bool   $showMerged    = false;
 
     // Create/edit modal
     public bool   $showFormModal  = false;
@@ -30,6 +31,8 @@ class Index extends Component
     public string $form_third_name   = '';
     public string $form_family_name  = '';
     public string $form_gender       = '';
+    public string $form_student_zone = '';
+    public bool   $form_is_recite_before = false;
 
     // Delete
     public ?int $deleteStudentId = null;
@@ -48,6 +51,11 @@ class Index extends Component
     }
 
     public function updatingGenderFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingShowMerged(): void
     {
         $this->resetPage();
     }
@@ -77,6 +85,8 @@ class Index extends Component
         $this->form_third_name   = $student->third_name ?? '';
         $this->form_family_name  = $student->family_name;
         $this->form_gender       = $student->gender?->value ?? '';
+        $this->form_student_zone = $student->student_zone ?? '';
+        $this->form_is_recite_before = $student->is_recite_before;
         $this->showFormModal     = true;
     }
 
@@ -101,12 +111,15 @@ class Index extends Component
             'form_third_name'  => ['nullable', 'string', 'max:50'],
             'form_family_name' => ['required', 'string', 'max:50'],
             'form_gender'      => ['required', 'in:male,female'],
+            'form_student_zone'=> ['required', 'in:East Gaza,West Gaza,North Gaza,South Gaza'],
+            'form_is_recite_before' => ['boolean'],
         ], [
             'form_national_id.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
             'form_national_id.unique'   => 'رقم الهوية مسجّل مسبقاً.',
             'form_first_name.required'  => 'الاسم الأول مطلوب.',
             'form_family_name.required' => 'اسم العائلة مطلوب.',
             'form_gender.required'      => 'الجنس مطلوب.',
+            'form_student_zone.required'=> 'منطقة الطالب مطلوبة.',
         ]);
 
         $data = [
@@ -116,6 +129,8 @@ class Index extends Component
             'third_name'   => $this->form_third_name ?: null,
             'family_name'  => $this->form_family_name,
             'gender'       => $this->form_gender ?: null,
+            'student_zone' => $this->form_student_zone ?: null,
+            'is_recite_before' => $this->form_is_recite_before,
         ];
 
         if ($this->editStudentId) {
@@ -180,7 +195,11 @@ class Index extends Component
 
     public function render()
     {
+        // Hide merged records by default — they belong to the merge UI only.
+        // Why: after admin merge, the duplicate row stays in the DB for audit/undo
+        // but should not appear in any "list of students" UI.
         $students = Student::query()
+            ->unless($this->showMerged, fn($q) => $q->whereNull('master_id'))
             ->when($this->search, fn($q) => ArabicSearch::applyTo(
                 $q,
                 $this->search,
@@ -204,6 +223,8 @@ class Index extends Component
         $this->form_third_name  = '';
         $this->form_family_name = '';
         $this->form_gender      = '';
+        $this->form_student_zone = '';
+        $this->form_is_recite_before = false;
         $this->resetValidation();
     }
 }

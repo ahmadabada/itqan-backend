@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Public;
 
+use App\Enums\ExamStatus;
 use App\Models\Exam;
 use App\Models\Student;
 use App\Models\SystemSetting;
@@ -25,6 +26,10 @@ class ResultQuery extends Component
     /** @var \App\Models\Exam|null */
     public ?Exam $exam = null;
 
+    // True when the searched national_id belonged to a record that has since been
+    // merged into another — used to render a notice on the public page.
+    public bool $wasMerged = false;
+
     public bool $queryEnabled = false;
 
     public function mount(): void
@@ -44,14 +49,40 @@ class ResultQuery extends Component
             'national_id.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
         ]);
 
-        $this->student = Student::where('national_id', $this->national_id)->first();
+        // Reset previous result so re-searches don't leak the prior state.
+        $this->student   = null;
+        $this->exam      = null;
+        $this->wasMerged = false;
 
-        if ($this->student) {
-            // BR-QUERY-02: Only approved exam
-            $this->exam = Exam::where('student_id', $this->student->id)
-                ->where('is_approved', true)
+        // Prefer the master record when the same national_id exists on multiple rows
+        // (duplicate captured by the mobile app before an admin merge).
+        $found = Student::where('national_id', $this->national_id)
+            ->orderByRaw('master_id IS NULL DESC') // masters first
+            ->orderBy('id')
+            ->first();
+
+        if ($found) {
+            // If this row was merged into another, resolve to the master so the
+            // public page shows the canonical identity.
+            $this->wasMerged = (bool) $found->master_id;
+            $this->student   = $found->master_id
+                ? (Student::find($found->master_id) ?? $found)
+                : $found;
+
+            // BR-QUERY-02: Only the canonical exam — searched across the master
+            // and any students merged into it so the result survives admin merges.
+            //
+            // Multiple Approved rows are theoretically possible (e.g. mobile
+            // sync writes Approved per record, and admin merges only collapse
+            // them on demand). The admin is expected to manually ensure one
+            // Approved per master before publishing results; until then, this
+            // query deterministically picks the EARLIEST approved attempt —
+            // oldest completed_at first, falling back to lowest id on ties.
+            $this->exam = Exam::forMasterStudent($this->student->id)
+                ->where('status', ExamStatus::Approved)
                 ->with('questions')
-                ->latest('completed_at')
+                ->oldest('completed_at')
+                ->oldest('id')
                 ->first();
         }
 

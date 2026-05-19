@@ -1,5 +1,24 @@
 <div class="p-4 sm:p-6 lg:p-8">
 
+    {{-- Merged record banner: this row was merged into another student, so it
+         should not be treated as an independent identity outside the merge UI. --}}
+    @if($student->master_id)
+        <div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center gap-3">
+            <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+            </svg>
+            <div class="flex-1 min-w-0 text-sm">
+                <p class="font-semibold text-amber-900">هذا السجل مدموج في سجل آخر</p>
+                <p class="text-amber-700 mt-0.5">
+                    السجل الأساسي:
+                    <a href="{{ route('admin.students.show', $student->master_id) }}" wire:navigate class="font-medium underline hover:text-amber-900">
+                        #{{ $student->master_id }}{{ $student->master ? ' — ' . $student->master->fullName() : '' }}
+                    </a>
+                </p>
+            </div>
+        </div>
+    @endif
+
     {{-- Header --}}
     <div class="mb-6 sm:mb-8 flex items-center justify-between">
         <div>
@@ -57,6 +76,30 @@
                                 <dt class="text-xs font-medium text-neutral-500">الجنس</dt>
                                 <dd class="mt-1 text-sm text-neutral-900">{{ $student->gender?->label() ?? '—' }}</dd>
                             </div>
+                            <div>
+                                <dt class="text-xs font-medium text-neutral-500">منطقة الطالب</dt>
+                                <dd class="mt-1 text-sm text-neutral-900">
+                                    @php
+                                        $zones = [
+                                            'East Gaza' => 'شرق غزة',
+                                            'West Gaza' => 'غرب غزة',
+                                            'North Gaza' => 'شمال غزة',
+                                            'South Gaza' => 'جنوب غزة',
+                                        ];
+                                    @endphp
+                                    {{ $student->student_zone ? ($zones[$student->student_zone] ?? $student->student_zone) : '—' }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-medium text-neutral-500">هل سبق له التسميع؟</dt>
+                                <dd class="mt-1 text-sm text-neutral-900">
+                                    @if($student->is_recite_before)
+                                        <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">نعم</span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-md bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 ring-1 ring-inset ring-neutral-500/10">لا</span>
+                                    @endif
+                                </dd>
+                            </div>
                         </dl>
                     </div>
                     <div class="p-5 sm:p-6">
@@ -113,9 +156,25 @@
                         </thead>
                         <tbody class="divide-y divide-neutral-100">
                             @forelse($exams as $exam)
-                                <tr class="hover:bg-neutral-50 transition-colors">
+                                @php $fromMerged = $exam->student_id !== $student->id; @endphp
+                                @php $isApproved = $exam->status?->value === 'approved'; @endphp
+                                <tr class="hover:bg-neutral-50 transition-colors {{ $isApproved ? 'bg-emerald-50/30' : '' }}">
                                     <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration + ($exams->firstItem() ?? 1) - 1 }}</td>
-                                    <td class="px-4 py-3 text-neutral-700">{{ $exam->examiner?->fullName() ?? '—' }}</td>
+                                    <td class="px-4 py-3 text-neutral-700">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span>{{ $exam->examiner?->fullName() ?? '—' }}</span>
+                                            @if($isApproved)
+                                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">معتمد</span>
+                                            @elseif($exam->status?->value === 'excluded')
+                                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-500 font-medium">مستبعد</span>
+                                            @endif
+                                            @if($fromMerged)
+                                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-500" title="من سجل مدموج #{{ $exam->student_id }}">
+                                                    مدموج #{{ $exam->student_id }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </td>
                                     <td class="px-4 py-3 text-neutral-600 text-xs">{{ $exam->exam_type?->label() }}</td>
                                     <td class="px-4 py-3">
                                         @if($exam->total_score !== null)

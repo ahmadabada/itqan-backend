@@ -87,4 +87,19 @@ class Exam extends Model
     {
         return $query->where('is_authoritative', true);
     }
+
+    // Returns exams belonging to the master student PLUS exams of any student
+    // merged into that master. Use this anywhere the merged identity should be
+    // presented as a single person (admin student detail, public result query).
+    public function scopeForMasterStudent(Builder $query, int $masterId): Builder
+    {
+        return $query->where(fn (Builder $inner) => $inner
+            ->where('student_id', $masterId)
+            ->orWhereIn('student_id', fn ($sub) => $sub
+                ->from('students')
+                ->select('id')
+                ->where('master_id', $masterId)
+                ->whereNull('deleted_at')
+            ));
+    }
 }
