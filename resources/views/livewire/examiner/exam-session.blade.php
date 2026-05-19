@@ -140,6 +140,24 @@
                                 الإضافة محصورة بـ {{ $examinerGender === 'male' ? 'الذكور' : 'الإناث' }} لأنك مختبر{{ $examinerGender === 'female' ? 'ة' : '' }}.
                             </p>
                         </flux:field>
+                        <flux:field>
+                            <flux:label>منطقة الطالب</flux:label>
+                            <flux:select wire:model="add_student_zone" placeholder="اختر المنطقة">
+                                <flux:select.option value="East Gaza">شرق غزة</flux:select.option>
+                                <flux:select.option value="West Gaza">غرب غزة</flux:select.option>
+                                <flux:select.option value="North Gaza">شمال غزة</flux:select.option>
+                                <flux:select.option value="South Gaza">جنوب غزة</flux:select.option>
+                            </flux:select>
+                            <flux:error name="add_student_zone" />
+                        </flux:field>
+                        <flux:field>
+                            <flux:label>هل سبق له السرد / التسميع؟</flux:label>
+                            <flux:select wire:model="add_is_recite_before" placeholder="اختر...">
+                                <flux:select.option value="1">نعم، سبق له</flux:select.option>
+                                <flux:select.option value="0">لا، لم يسبق له</flux:select.option>
+                            </flux:select>
+                            <flux:error name="add_is_recite_before" />
+                        </flux:field>
                         <flux:button type="submit" variant="primary" class="w-full">إضافة وبدء الاختبار</flux:button>
                     </form>
                 </div>
@@ -160,6 +178,35 @@
                 <p class="text-sm text-primary-500 mt-0.5 font-mono">
                     {{ $this->selectedStudent?->national_id ?? 'بدون رقم هوية' }}
                 </p>
+                <div class="flex items-center justify-center gap-1.5 flex-wrap mt-2.5">
+                    @if($this->selectedStudent?->gender)
+                        <span class="text-[10px] px-2 py-0.5 rounded-full {{ $this->selectedStudent->gender->value === 'male' ? 'bg-sky-100 text-sky-800' : 'bg-pink-100 text-pink-800' }} font-medium">
+                            {{ $this->selectedStudent->gender->label() }}
+                        </span>
+                    @endif
+                    @if($this->selectedStudent?->student_zone)
+                        @php
+                            $zones = [
+                                'East Gaza' => 'شرق غزة',
+                                'West Gaza' => 'غرب غزة',
+                                'North Gaza' => 'شمال غزة',
+                                'South Gaza' => 'جنوب غزة',
+                            ];
+                        @endphp
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-neutral-200/80 text-neutral-700 font-medium">
+                            {{ $zones[$this->selectedStudent->student_zone] ?? $this->selectedStudent->student_zone }}
+                        </span>
+                    @endif
+                    @if($this->selectedStudent?->is_recite_before)
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">
+                            سبق له التسميع
+                        </span>
+                    @else
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-600 font-medium">
+                            لم يسمع بعد
+                        </span>
+                    @endif
+                </div>
             </div>
 
             @if($this->selectedStudent && empty($this->selectedStudent->national_id))
@@ -598,7 +645,32 @@
 
             {{-- ─── Student + question indicator ─── --}}
             <div class="text-center mt-2">
-                <p class="text-xs uppercase tracking-wider text-neutral-400 mb-1.5 font-medium">{{ $this->selectedStudent?->fullName() }}</p>
+                <p class="text-xs uppercase tracking-wider text-neutral-400 mb-1 font-medium">{{ $this->selectedStudent?->fullName() }}</p>
+                <div class="flex items-center justify-center gap-1.5 flex-wrap mb-2.5">
+                    @if($this->selectedStudent?->gender)
+                        <span class="text-[9px] px-1.5 py-0.5 rounded-full {{ $this->selectedStudent->gender->value === 'male' ? 'bg-sky-50 text-sky-700' : 'bg-pink-50 text-pink-700' }}">
+                            {{ $this->selectedStudent->gender->label() }}
+                        </span>
+                    @endif
+                    @if($this->selectedStudent?->student_zone)
+                        @php
+                            $zones = [
+                                'East Gaza' => 'شرق غزة',
+                                'West Gaza' => 'غرب غزة',
+                                'North Gaza' => 'شمال غزة',
+                                'South Gaza' => 'جنوب غزة',
+                            ];
+                        @endphp
+                        <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-600">
+                            {{ $zones[$this->selectedStudent->student_zone] ?? $this->selectedStudent->student_zone }}
+                        </span>
+                    @endif
+                    @if($this->selectedStudent?->is_recite_before)
+                        <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">
+                            سبق له التسميع
+                        </span>
+                    @endif
+                </div>
                 <h2 class="text-xl font-bold text-neutral-800 tracking-tight">
                     <span x-text="'السؤال ' + currentQ + ' من 3'"></span>
                     <span x-show="currentRq" class="ms-2 text-sm font-semibold text-primary-600"

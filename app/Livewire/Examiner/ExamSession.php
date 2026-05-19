@@ -44,6 +44,8 @@ class ExamSession extends Component
     public string $add_third_name   = '';
     public string $add_family_name  = '';
     public string $add_gender       = '';
+    public string $add_student_zone = '';
+    public ?bool  $add_is_recite_before = null;
 
     // ── Exam setup ─────────────────────────────────────────
     public string $examType        = '';
@@ -169,6 +171,8 @@ class ExamSession extends Component
             'add_third_name'  => ['nullable', 'string', 'max:50'],
             'add_family_name' => ['required', 'string', 'max:50'],
             'add_gender'      => ['required', 'in:' . $examinerGender],
+            'add_student_zone'=> ['required', 'string', 'in:East Gaza,West Gaza,North Gaza,South Gaza'],
+            'add_is_recite_before' => ['required', 'boolean'],
         ], [
             'add_national_id.required' => 'رقم الهوية مطلوب لإجراء اختبار.',
             'add_national_id.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
@@ -179,6 +183,10 @@ class ExamSession extends Component
             'add_gender.in'            => $examinerGender === 'male'
                 ? 'لا يمكنك إضافة طالبة — الإضافة محصورة بالذكور.'
                 : 'لا يمكنك إضافة طالب ذكر — الإضافة محصورة بالإناث.',
+            'add_student_zone.required' => 'منطقة الطالب مطلوبة.',
+            'add_student_zone.in'       => 'المنطقة المحددة غير صالحة.',
+            'add_is_recite_before.required' => 'حقل هل سبق له التسميع مطلوب.',
+            'add_is_recite_before.boolean'  => 'القيمة المحددة لحقل هل سبق له التسميع غير صالحة.',
         ]);
 
         $student = Student::create([
@@ -188,6 +196,8 @@ class ExamSession extends Component
             'third_name'   => $this->add_third_name ?: null,
             'family_name'  => $this->add_family_name,
             'gender'       => $this->add_gender,
+            'student_zone' => $this->add_student_zone,
+            'is_recite_before' => $this->add_is_recite_before,
         ]);
 
         $this->resetAddStudentForm();
@@ -581,6 +591,8 @@ class ExamSession extends Component
         $this->add_third_name  = '';
         $this->add_family_name = '';
         $this->add_gender      = '';
+        $this->add_student_zone = '';
+        $this->add_is_recite_before = null;
         $this->showAddStudent  = false;
     }
 }
