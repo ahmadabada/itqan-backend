@@ -57,16 +57,20 @@
                             @endif
                         </td>
                         <td class="px-4 py-3">
-                            @if($op->undone_at)
-                                <span class="text-xs text-neutral-300">—</span>
-                            @else
-                                <button
-                                    wire:click="openUndoModal({{ $op->id }})"
-                                    class="text-xs text-neutral-500 hover:text-danger-600 transition-colors"
-                                >
-                                    تراجع
-                                </button>
-                            @endif
+                            <div class="flex items-center gap-3">
+                                <a href="{{ route('admin.merges.show', $op->id) }}" wire:navigate
+                                   class="text-xs text-neutral-500 hover:text-primary-600 transition-colors">
+                                    عرض
+                                </a>
+                                @if(! $op->undone_at)
+                                    <button
+                                        wire:click="openUndoModal({{ $op->id }})"
+                                        class="text-xs text-neutral-500 hover:text-danger-600 transition-colors"
+                                    >
+                                        تراجع
+                                    </button>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty
