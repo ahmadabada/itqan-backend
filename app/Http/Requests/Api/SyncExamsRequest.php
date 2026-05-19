@@ -29,6 +29,8 @@ class SyncExamsRequest extends FormRequest
             'exams.*.student.third_name'                  => ['nullable', 'string', 'max:50'],
             'exams.*.student.family_name'                 => ['required', 'string', 'max:50'],
             'exams.*.student.gender'                      => ['required', 'in:male,female'],
+            'exams.*.student.is_recite_before'            => ['required', 'boolean'],
+            'exams.*.student.student_zone'                => ['required', 'in:East Gaza,West Gaza,North Gaza,South Gaza'],
 
             'exams.*.exam_type'                           => ['required', 'in:full_quran,half_quran'],
             'exams.*.selected_groups'                     => ['nullable', 'array'],

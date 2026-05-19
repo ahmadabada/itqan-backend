@@ -83,8 +83,11 @@ class SyncService
                 'third_name'         => $data['third_name'] ?? null,
                 'family_name'        => $data['family_name'],
                 'gender'             => $data['gender'],
-                'is_recite_before'   => $data['is_recite_before'],
-                'student_zone'       => $data['student_zone'],
+                // Tolerate older mobile builds that don't yet send these fields —
+                // the validation rule is `required` for new clients, but defensively
+                // null-coalesce here so a missing key never explodes mid-transaction.
+                'is_recite_before'   => $data['is_recite_before'] ?? false,
+                'student_zone'       => $data['student_zone'] ?? null,
                 'created_via'        => ExamSource::Flutter->value,
                 'created_by_user_id' => $examinerId,
                 'device_uuid'        => $deviceUuid,

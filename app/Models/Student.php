@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'national_id', 'first_name', 'second_name', 'third_name', 'family_name', 'gender',
     'created_via', 'created_by_user_id', 'device_uuid', 'client_request_id',
+    'is_recite_before', 'student_zone',
 ])]
 class Student extends Model
 {
@@ -24,9 +25,10 @@ class Student extends Model
     protected function casts(): array
     {
         return [
-            'gender'      => Gender::class,
-            'created_via' => ExamSource::class,
-            'merged_at'   => 'datetime',
+            'gender'             => Gender::class,
+            'created_via'        => ExamSource::class,
+            'merged_at'          => 'datetime',
+            'is_recite_before'   => 'boolean',
         ];
     }
 
