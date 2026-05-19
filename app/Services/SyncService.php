@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\ExamQuestion;
 use App\Models\Student;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 // Offline-first sync philosophy:
@@ -119,8 +120,11 @@ class SyncService
                 'source'             => ExamSource::Flutter,
                 'device_uuid'        => $data['device_uuid'],
                 'client_request_id'  => $data['client_request_id'],
-                'started_at'         => $data['started_at'],
-                'completed_at'       => $data['completed_at'],
+                // The Flutter client serializes timestamps as UTC ISO8601 (Z
+                // suffix). Convert to the app timezone before persisting so the
+                // raw DB string already matches what admins see in the UI.
+                'started_at'         => Carbon::parse($data['started_at'])->setTimezone(config('app.timezone')),
+                'completed_at'       => Carbon::parse($data['completed_at'])->setTimezone(config('app.timezone')),
                 'synced_at'          => now(),
             ]);
         } catch (QueryException $e) {
