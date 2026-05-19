@@ -42,6 +42,7 @@
                     ['route' => 'admin.merges.history',       'label' => 'سجل الدمج', 'pattern' => 'admin/merges/history*', 'icon' => 'history'],
                     ['route' => 'admin.devices',              'label' => 'الأجهزة', 'pattern' => 'admin/devices*', 'icon' => 'phone'],
                     ['route' => 'admin.recitation-questions', 'label' => 'بنك الأسئلة', 'pattern' => 'admin/recitation-questions*', 'icon' => 'book'],
+                    ['route' => 'admin.suggested-students',    'label' => 'الطلاب المقترحون', 'pattern' => 'admin/suggested-students*', 'icon' => 'users'],
                     ['route' => 'admin.users',                'label' => 'المستخدمون', 'pattern' => 'admin/users*', 'icon' => 'shield'],
                     ['route' => 'admin.permits',              'label' => 'أذونات الإعادة', 'pattern' => 'admin/permits*', 'icon' => 'key'],
                 ],

@@ -10,6 +10,7 @@ use App\Livewire\Admin\Merges\Index as AdminMerges;
 use App\Livewire\Admin\Merges\Show as AdminMergeShow;
 use App\Livewire\Admin\Permits\Index as AdminPermits;
 use App\Livewire\Admin\RecitationQuestions\Index as AdminRecitationQuestions;
+use App\Livewire\Admin\SuggestedStudents\Index as AdminSuggestedStudents;
 use App\Livewire\Admin\Settings\Index as AdminSettings;
 use App\Livewire\Admin\Students\Index as AdminStudents;
 use App\Livewire\Admin\Students\Show as AdminStudentShow;
@@ -58,6 +59,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('students',              AdminStudents::class)->name('students');
     Route::get('students/{student}',    AdminStudentShow::class)->name('students.show')->whereNumber('student');
     Route::get('recitation-questions',  AdminRecitationQuestions::class)->name('recitation-questions');
+    Route::get('suggested-students',    AdminSuggestedStudents::class)->name('suggested-students');
     Route::get('permits',               AdminPermits::class)->name('permits');
     Route::get('exams',             AdminExamsIndex::class)->name('exams.index');
     Route::get('exams/{exam}',      AdminExamShow::class)->name('exams.show')->whereNumber('exam');

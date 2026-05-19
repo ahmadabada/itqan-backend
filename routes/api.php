@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\ExamController;
 use App\Http\Controllers\Api\V1\RecitationQuestionController;
 use App\Http\Controllers\Api\V1\ReexamPermitController;
 use App\Http\Controllers\Api\V1\StudentController;
+use App\Http\Controllers\Api\V1\SuggestedStudentController;
 use App\Http\Controllers\Api\V1\SyncController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,12 @@ Route::prefix('v1')->group(function () {
         // Re-exam Permits (BR-REEX-02, BR-REEX-03)
         Route::post('reexam-permits/verify', [ReexamPermitController::class, 'verify']);
         Route::get('reexam-permits/active', [ReexamPermitController::class, 'active']);
+
+        // Suggested students (autocomplete source, gender-scoped by the
+        // controller — clients cannot widen the filter).
+        Route::get('suggested-students',          [SuggestedStudentController::class, 'index']);
+        Route::get('suggested-students/search',   [SuggestedStudentController::class, 'search']);
+        Route::get('suggested-students/{suggestedStudent}', [SuggestedStudentController::class, 'show'])->whereNumber('suggestedStudent');
 
         // Sync — record-per-exam uploads + admin command channel
         Route::post('sync/exams', [SyncController::class, 'syncExams']);

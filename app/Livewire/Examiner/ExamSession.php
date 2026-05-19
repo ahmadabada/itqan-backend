@@ -10,6 +10,7 @@ use App\Models\Exam;
 use App\Models\ExamQuestion;
 use App\Models\ReexamPermit;
 use App\Models\Student;
+use App\Models\SuggestedStudent;
 use App\Models\SystemSetting;
 use App\Services\ArabicSearch;
 use App\Services\ExamQuestionPicker;
@@ -46,6 +47,12 @@ class ExamSession extends Component
     public string $add_gender       = '';
     public string $add_student_zone = '';
     public ?bool  $add_is_recite_before = null;
+
+    // BR-SS-5: autocomplete inside the quick-add form. Searches the
+    // pre-staged suggested_students list scoped to the examiner's gender
+    // (BR-SS-1). Picking a row pre-fills the add_* fields; the examiner can
+    // still edit anything before saving.
+    public string $suggestionSearch = '';
 
     // ── Exam setup ─────────────────────────────────────────
     public string $examType        = '';
@@ -156,6 +163,46 @@ class ExamSession extends Component
             ->exists();
 
         $this->step = 'setup';
+    }
+
+    // BR-SS-1 + BR-SS-5: autocomplete suggestions for the quick-add form.
+    // Always filtered to the examiner's own gender on the server side.
+    #[Computed]
+    public function suggestionResults(): array
+    {
+        if (mb_strlen($this->suggestionSearch) < 2) return [];
+
+        $query = SuggestedStudent::query()->forExaminer(Auth::user());
+
+        ArabicSearch::applyTo(
+            $query,
+            $this->suggestionSearch,
+            ['first_name', 'second_name', 'third_name', 'family_name'],
+            ['national_id'],
+        );
+
+        return $query->orderBy('family_name')->limit(8)->get()->toArray();
+    }
+
+    public function selectSuggestion(int $suggestionId): void
+    {
+        $s = SuggestedStudent::find($suggestionId);
+        if (! $s || $s->gender->value !== Auth::user()->gender?->value) {
+            $this->dispatch('notify', type: 'error', message: 'المقترح غير موجود.');
+            return;
+        }
+
+        // Pre-fill; the examiner can still edit anything before saving. The exam
+        // record copies these values — suggested_students is not referenced.
+        $this->add_national_id      = $s->national_id ?? '';
+        $this->add_first_name       = $s->first_name;
+        $this->add_second_name      = $s->second_name ?? '';
+        $this->add_third_name       = $s->third_name ?? '';
+        $this->add_family_name      = $s->family_name;
+        $this->add_gender           = $s->gender->value;
+        $this->add_student_zone     = $s->student_zone;
+        $this->add_is_recite_before = $s->is_recite_before;
+        $this->suggestionSearch     = '';
     }
 
     public function quickAddStudent(): void
@@ -593,6 +640,7 @@ class ExamSession extends Component
         $this->add_gender      = '';
         $this->add_student_zone = '';
         $this->add_is_recite_before = null;
+        $this->suggestionSearch = '';
         $this->showAddStudent  = false;
     }
 }

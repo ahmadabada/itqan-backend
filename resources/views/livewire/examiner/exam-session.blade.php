@@ -99,6 +99,44 @@
             @if($showAddStudent)
                 <div class="mt-4 bg-white rounded-xl border border-neutral-200 p-5 space-y-4">
                     <h3 class="font-semibold text-neutral-900">إضافة طالب جديد</h3>
+
+                    {{-- BR-SS-5: autocomplete on the suggested-students list. Picking a
+                         row pre-fills the form; the examiner can still edit. --}}
+                    <div class="relative">
+                        <label class="block text-xs text-neutral-500 mb-1">
+                            ابحث في القائمة المقترحة (اختياري — لتعبئة الحقول تلقائياً)
+                        </label>
+                        <flux:input
+                            wire:model.live.debounce.300ms="suggestionSearch"
+                            type="text"
+                            placeholder="ابحث بالاسم أو رقم الهوية..."
+                        />
+                        @if(count($this->suggestionResults) > 0)
+                            <div class="absolute z-10 mt-1 w-full bg-white border border-neutral-200 rounded-lg shadow-lg max-h-72 overflow-y-auto">
+                                @foreach($this->suggestionResults as $s)
+                                    <button
+                                        type="button"
+                                        wire:click="selectSuggestion({{ $s['id'] }})"
+                                        class="w-full text-start px-4 py-2.5 hover:bg-primary-50 transition-colors border-b border-neutral-100 last:border-0"
+                                    >
+                                        <div class="font-medium text-neutral-900 text-sm">
+                                            {{ trim(implode(' ', array_filter([$s['first_name'], $s['second_name'] ?? null, $s['third_name'] ?? null, $s['family_name']]))) }}
+                                        </div>
+                                        <div class="text-xs text-neutral-500 mt-0.5 font-mono">
+                                            {{ $s['national_id'] ?? 'بدون هوية' }} · {{ $s['student_zone'] }}
+                                        </div>
+                                    </button>
+                                @endforeach
+                            </div>
+                        @elseif(mb_strlen($suggestionSearch) >= 2)
+                            <div class="absolute z-10 mt-1 w-full bg-white border border-neutral-200 rounded-lg shadow-sm px-4 py-3 text-xs text-neutral-400">
+                                لا توجد نتائج
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="border-t border-neutral-100 pt-4">
+
                     <form wire:submit="quickAddStudent" class="space-y-3">
                         <flux:field>
                             <flux:label>رقم الهوية</flux:label>
@@ -160,6 +198,7 @@
                         </flux:field>
                         <flux:button type="submit" variant="primary" class="w-full">إضافة وبدء الاختبار</flux:button>
                     </form>
+                    </div> {{-- /border-t wrapper for the manual-entry block --}}
                 </div>
             @endif
 

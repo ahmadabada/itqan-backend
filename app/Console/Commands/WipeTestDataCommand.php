@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\DB;
 
 // One-shot cleanup for the test phase: drops all exam, student, permit, device,
 // and merge data; deletes every non-super-admin user; then re-runs the super admin
-// sync. recitation_questions, audit_logs, and system_settings are preserved.
+// sync. recitation_questions, suggested_students, audit_logs, and system_settings
+// are preserved (the admin curates the suggestion list independently of test
+// runs — wiping it would force re-uploading the autocomplete source).
 class WipeTestDataCommand extends Command
 {
     protected $signature = 'itqan:wipe-test-data {--force : Skip the confirmation prompt}';
