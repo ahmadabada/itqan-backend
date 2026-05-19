@@ -56,7 +56,7 @@ class History extends Component
         try {
             $merger->undo(
                 mergeOperationId: $this->undoOperationId,
-                adminUserId:      Auth::id(),
+                adminUserId:      Auth::user()->id, // Auth::id() returns national_id (User override)
                 notes:            $this->undoNotes ?: null,
             );
         } catch (\Throwable $e) {

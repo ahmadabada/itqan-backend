@@ -62,17 +62,21 @@ class Index extends Component
             return;
         }
 
+        // Auth::id() returns national_id here (User::getAuthIdentifierName is overridden).
+        // FK columns reference users.id, so we must read ->id off the user explicitly.
+        $adminId = Auth::user()->id;
+
         $command = DeviceCommand::create([
             'device_uuid'        => $device->device_uuid,
             'command_type'       => DeviceCommand::TYPE_WIPE_DATA,
             'payload'            => $this->wipeReason ? ['reason' => $this->wipeReason] : null,
-            'issued_by_admin_id' => Auth::id(),
+            'issued_by_admin_id' => $adminId,
             'issued_at'          => now(),
             'status'             => DeviceCommand::STATUS_PENDING,
         ]);
 
         AuditLog::create([
-            'user_id'     => Auth::id(),
+            'user_id'     => $adminId,
             'action'      => 'device_wipe_issued',
             'target_type' => 'device_command',
             'target_id'   => $command->id,

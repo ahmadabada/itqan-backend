@@ -23,9 +23,10 @@ class Index extends Component
 {
     use WithPagination;
 
-    public string $search       = '';
-    public string $genderFilter = '';
-    public string $statusFilter = 'not_merged'; // not_merged | merged | all
+    public string $search          = '';
+    public string $genderFilter    = '';
+    public string $statusFilter    = 'not_merged'; // not_merged | merged | all
+    public bool   $onlyDuplicates  = false;
 
     public array $selectedIds = [];
 
@@ -60,6 +61,11 @@ class Index extends Component
     }
 
     public function updatingStatusFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingOnlyDuplicates(): void
     {
         $this->resetPage();
     }
@@ -160,7 +166,7 @@ class Index extends Component
                     'family_name' => $this->masterFamilyName,
                     'national_id' => $this->masterNationalId ?: null,
                 ],
-                adminUserId: Auth::id(),
+                adminUserId: Auth::user()->id, // Auth::id() returns national_id (User override)
                 notes:       $this->notes ?: null,
             );
         } catch (\Throwable $e) {
@@ -201,6 +207,14 @@ class Index extends Component
             ->when($this->genderFilter, fn($q) => $q->where('gender', $this->genderFilter))
             ->when($this->statusFilter === 'not_merged', fn($q) => $q->whereNull('master_id'))
             ->when($this->statusFilter === 'merged',     fn($q) => $q->whereNotNull('master_id'))
+            ->when($this->onlyDuplicates, fn($q) => $q->whereIn('national_id', function ($sub) {
+                $sub->from('students')
+                    ->select('national_id')
+                    ->whereNotNull('national_id')
+                    ->whereNull('deleted_at')
+                    ->groupBy('national_id')
+                    ->havingRaw('COUNT(*) > 1');
+            }))
             ->withCount('exams')
             ->orderBy('national_id')
             ->orderBy('family_name')
