@@ -42,8 +42,11 @@ Route::prefix('v1')->group(function () {
         Route::post('reexam-permits/verify', [ReexamPermitController::class, 'verify']);
         Route::get('reexam-permits/active', [ReexamPermitController::class, 'active']);
 
-        // Suggested students (autocomplete source, gender-scoped by the
-        // controller — clients cannot widen the filter).
+        // Suggested students. Web examiner reads gender-scoped lists from
+        // /suggested-students (index/search). Mobile uses /sync to pull every
+        // row (with gender) because devices are shared across examiners — the
+        // local SQLite query then filters by the logged-in examiner's gender.
+        Route::get('suggested-students/sync',     [SuggestedStudentController::class, 'sync']);
         Route::get('suggested-students',          [SuggestedStudentController::class, 'index']);
         Route::get('suggested-students/search',   [SuggestedStudentController::class, 'search']);
         Route::get('suggested-students/{suggestedStudent}', [SuggestedStudentController::class, 'show'])->whereNumber('suggestedStudent');

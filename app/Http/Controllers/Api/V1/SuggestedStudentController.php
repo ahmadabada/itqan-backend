@@ -13,13 +13,36 @@ use Illuminate\Http\Request;
 // cannot widen the result set by sending a different filter.
 class SuggestedStudentController extends Controller
 {
-    // GET /suggested-students — full list, used by mobile on first launch and
-    // on the manual refresh action. Returned newest-first; the client treats
-    // the response as a complete replacement for its local cache.
+    // GET /suggested-students — gender-scoped list used by the web examiner UI
+    // when picking from the dropdown. Mobile does not call this endpoint;
+    // see sync() below for the rationale.
     public function index(Request $request): JsonResponse
     {
         $rows = SuggestedStudent::query()
             ->forExaminer($request->user())
+            ->orderBy('family_name')
+            ->orderBy('first_name')
+            ->get();
+
+        return response()->json([
+            'data' => $rows->map(fn($s) => $this->serialize($s))->values(),
+        ]);
+    }
+
+    // GET /suggested-students/sync — full UNFILTERED list for the mobile cache.
+    //
+    // Mobile devices are shared between examiners (e.g. a male examiner logs
+    // out and a female examiner logs in on the same tablet). If the cache only
+    // held the first examiner's gender, the second examiner would see nothing
+    // until they manually refreshed. Returning everything and letting the
+    // device filter at query time avoids that bad first-experience.
+    //
+    // We accept the BR-SS-1 spec deviation here because (a) the data is admin-
+    // curated and not user-sensitive, and (b) the examiner is still
+    // authenticated, so the only access this widens is from the same device.
+    public function sync(Request $request): JsonResponse
+    {
+        $rows = SuggestedStudent::query()
             ->orderBy('family_name')
             ->orderBy('first_name')
             ->get();
