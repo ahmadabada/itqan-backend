@@ -1,3 +1,6 @@
+import ApexCharts from 'apexcharts';
+window.ApexCharts = ApexCharts;
+
 // Bridge: Livewire components dispatch a generic `notify` event
 // ({ type: 'error'|'success'|'warning'|'info', message }). Flux's <flux:toast />
 // listens for `toast-show` with { text, variant: 'danger'|'success'|... }.
