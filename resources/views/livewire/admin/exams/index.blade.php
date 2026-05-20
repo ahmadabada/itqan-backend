@@ -10,9 +10,9 @@
 
     {{-- Filters --}}
     <div class="bg-white rounded-xl border border-neutral-200 p-4 mb-5">
-        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 
-            <div class="lg:col-span-2">
+            <div>
                 <label class="block text-xs text-neutral-500 mb-1">بحث (طالب / هوية)</label>
                 <flux:input wire:model.live.debounce.300ms="search" placeholder="اسم الطالب أو رقم الهوية..." size="sm" />
             </div>
@@ -46,19 +46,9 @@
                 </flux:select>
             </div>
 
-            <div>
-                <label class="block text-xs text-neutral-500 mb-1">من تاريخ</label>
-                <flux:input type="date" wire:model.live="dateFrom" size="sm" />
-            </div>
-
-            <div>
-                <label class="block text-xs text-neutral-500 mb-1">إلى تاريخ</label>
-                <flux:input type="date" wire:model.live="dateTo" size="sm" />
-            </div>
-
         </div>
 
-        @if($search || $statusFilter || $examinerFilter || $genderFilter || $dateFrom || $dateTo)
+        @if($search || $statusFilter || $examinerFilter || $genderFilter)
             <div class="mt-3 pt-3 border-t border-neutral-100">
                 <button wire:click="clearFilters" class="text-xs text-neutral-500 hover:text-danger-600 transition-colors">
                     مسح الفلاتر
@@ -188,13 +178,35 @@
                             {{ $exam->started_at?->format('Y-m-d g:i A') }}
                         </td>
                         <td class="px-4 py-3 text-end">
-                            <a
-                                href="{{ route('admin.exams.show', $exam->id) }}"
-                                wire:navigate
-                                class="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
-                            >
-                                التفاصيل ←
-                            </a>
+                            <div class="flex items-center justify-end gap-2 flex-wrap">
+                                {{-- Show only the opposite action of the current status. In-progress exams get no action --}}
+                                @if($exam->status?->value === 'approved')
+                                    <button
+                                        type="button"
+                                        wire:click="exclude({{ $exam->id }})"
+                                        wire:confirm="استبعاد هذا الاختبار؟"
+                                        class="text-xs font-medium text-neutral-600 hover:text-rose-600 transition-colors"
+                                    >
+                                        استبعاد
+                                    </button>
+                                @elseif($exam->status?->value === 'excluded')
+                                    <button
+                                        type="button"
+                                        wire:click="approve({{ $exam->id }})"
+                                        wire:confirm="اعتماد هذا الاختبار؟"
+                                        class="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+                                    >
+                                        اعتماد
+                                    </button>
+                                @endif
+                                <a
+                                    href="{{ route('admin.exams.show', $exam->id) }}"
+                                    wire:navigate
+                                    class="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                                >
+                                    التفاصيل ←
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 @empty

@@ -38,8 +38,8 @@
                 'title' => 'البيانات',
                 'items' => [
                     ['route' => 'admin.students',             'label' => 'الطلاب', 'pattern' => 'admin/students*', 'icon' => 'users'],
-                    ['route' => 'admin.merges',               'label' => 'دمج الطلاب', 'pattern' => 'admin/merges', 'icon' => 'merge'],
-                    ['route' => 'admin.merges.history',       'label' => 'سجل الدمج', 'pattern' => 'admin/merges/history*', 'icon' => 'history'],
+                    ['route' => 'admin.merges',               'label' => 'دمج الطلاب', 'pattern' => 'admin/merges', 'icon' => 'merge', 'super_admin_only' => true],
+                    ['route' => 'admin.merges.history',       'label' => 'سجل الدمج', 'pattern' => 'admin/merges/history*', 'icon' => 'history', 'super_admin_only' => true],
                     ['route' => 'admin.devices',              'label' => 'الأجهزة', 'pattern' => 'admin/devices*', 'icon' => 'phone'],
                     ['route' => 'admin.recitation-questions', 'label' => 'بنك الأسئلة', 'pattern' => 'admin/recitation-questions*', 'icon' => 'book'],
                     ['route' => 'admin.suggested-students',    'label' => 'الطلاب المقترحون', 'pattern' => 'admin/suggested-students*', 'icon' => 'users'],
@@ -124,6 +124,9 @@
                     </div>
                     <div class="px-3 space-y-0.5">
                         @foreach($group['items'] as $item)
+                            @if(($item['super_admin_only'] ?? false) && ! auth()->user()->isSuperAdmin())
+                                @continue
+                            @endif
                             @php $active = request()->is($item['pattern']); @endphp
                             <a href="{{ route($item['route']) }}" wire:navigate
                                @click="sidebarOpen = false"

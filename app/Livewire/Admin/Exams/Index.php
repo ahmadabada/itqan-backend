@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Exams;
 
 use App\Enums\ExamStatus;
 use App\Enums\UserRole;
+use App\Models\AuditLog;
 use App\Models\Exam;
 use App\Models\User;
 use App\Services\ArabicSearch;
@@ -32,12 +33,6 @@ class Index extends Component
     #[Url(as: 'gender')]
     public string $genderFilter = '';
 
-    #[Url(as: 'from')]
-    public string $dateFrom = '';
-
-    #[Url(as: 'to')]
-    public string $dateTo = '';
-
     #[Url(as: 'sort')]
     public string $sortBy = 'created_at';
 
@@ -54,7 +49,7 @@ class Index extends Component
 
     public function updating($name): void
     {
-        if (in_array($name, ['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'dateFrom', 'dateTo'])) {
+        if (in_array($name, ['search', 'statusFilter', 'examinerFilter', 'genderFilter'])) {
             $this->resetPage();
         }
     }
@@ -71,8 +66,56 @@ class Index extends Component
 
     public function clearFilters(): void
     {
-        $this->reset(['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'dateFrom', 'dateTo']);
+        $this->reset(['search', 'statusFilter', 'examinerFilter', 'genderFilter']);
         $this->resetPage();
+    }
+
+    // Approve / Exclude — admin override on any completed exam. Either action
+    // is reversible by calling the opposite, and every flip is audit-logged.
+    // Examiners cannot reach this page (mount() redirects), so role gating is
+    // already enforced at the controller level.
+    public function approve(int $examId): void
+    {
+        $this->setStatus($examId, ExamStatus::Approved);
+    }
+
+    public function exclude(int $examId): void
+    {
+        $this->setStatus($examId, ExamStatus::Excluded);
+    }
+
+    private function setStatus(int $examId, ExamStatus $newStatus): void
+    {
+        $exam = Exam::find($examId);
+        if (! $exam) {
+            $this->dispatch('notify', type: 'error', message: 'الاختبار غير موجود.');
+            return;
+        }
+        if ($exam->status === ExamStatus::InProgress) {
+            $this->dispatch('notify', type: 'error', message: 'لا يمكن تغيير حالة اختبار جارٍ.');
+            return;
+        }
+        if ($exam->status === $newStatus) {
+            return;
+        }
+
+        $oldStatus = $exam->status;
+        $exam->update(['status' => $newStatus]);
+
+        AuditLog::create([
+            'user_id'     => Auth::user()->id,
+            'action'      => $newStatus === ExamStatus::Approved ? 'exam_approved' : 'exam_excluded',
+            'target_type' => 'exam',
+            'target_id'   => $exam->id,
+            'old_values'  => ['status' => $oldStatus?->value],
+            'new_values'  => ['status' => $newStatus->value],
+        ]);
+
+        $this->dispatch(
+            'notify',
+            type: 'success',
+            message: $newStatus === ExamStatus::Approved ? 'تم اعتماد الاختبار.' : 'تم استبعاد الاختبار.',
+        );
     }
 
     public function render()
@@ -95,8 +138,6 @@ class Index extends Component
             ->when($this->genderFilter, fn($q) =>
                 $q->whereHas('student', fn($s) => $s->where('gender', $this->genderFilter))
             )
-            ->when($this->dateFrom, fn($q) => $q->whereDate('started_at', '>=', $this->dateFrom))
-            ->when($this->dateTo,   fn($q) => $q->whereDate('started_at', '<=', $this->dateTo))
             ->orderBy($sortBy, $this->sortDir)
             ->paginate(25);
 

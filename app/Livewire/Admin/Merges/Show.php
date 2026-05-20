@@ -23,8 +23,11 @@ class Show extends Component
 
     public function mount(MergeOperation $operation): void
     {
-        if (Auth::user()->role === UserRole::Examiner) {
-            $this->redirect(route('examiner.dashboard'));
+        $user = Auth::user();
+        if (! $user->isSuperAdmin()) {
+            $this->redirect(
+                $user->role === UserRole::Examiner ? route('examiner.dashboard') : route('admin.dashboard'),
+            );
             return;
         }
 

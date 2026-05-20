@@ -45,8 +45,13 @@ class Index extends Component
 
     public function mount(): void
     {
-        if (Auth::user()->role === UserRole::Examiner) {
-            $this->redirect(route('examiner.dashboard'));
+        // Merging students is a destructive, hard-to-reverse data operation;
+        // restricted to super admins per security policy.
+        $user = Auth::user();
+        if (! $user->isSuperAdmin()) {
+            $this->redirect(
+                $user->role === UserRole::Examiner ? route('examiner.dashboard') : route('admin.dashboard'),
+            );
         }
     }
 

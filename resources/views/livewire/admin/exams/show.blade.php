@@ -40,17 +40,41 @@
                 </p>
             </div>
 
-            @if($exam->total_score !== null)
-                <div class="text-end">
-                    <p class="text-4xl font-black {{ $exam->is_passed ? 'text-success-600' : 'text-danger-500' }}">
-                        {{ number_format($exam->total_score, 1) }}
-                        <span class="text-sm font-normal text-neutral-400">/ 100</span>
-                    </p>
-                    <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded-full {{ $exam->is_passed ? 'bg-success-50 text-success-700' : 'bg-danger-50 text-danger-600' }}">
-                        {{ $exam->is_passed ? '✓ مجاز' : '✗ غير مجاز' }}
-                    </span>
-                </div>
-            @endif
+            <div class="flex items-start gap-4 flex-wrap">
+                {{-- Admin override actions. Only one button is meaningful at a time (the opposite of current state).
+                     In-progress exams get no button — the lifecycle requires completion first. --}}
+                @if($exam->status?->value === 'approved')
+                    <flux:button
+                        variant="danger"
+                        size="sm"
+                        wire:click="exclude"
+                        wire:confirm="استبعاد هذا الاختبار؟"
+                    >
+                        استبعاد الاختبار
+                    </flux:button>
+                @elseif($exam->status?->value === 'excluded')
+                    <flux:button
+                        variant="primary"
+                        size="sm"
+                        wire:click="approve"
+                        wire:confirm="اعتماد هذا الاختبار؟"
+                    >
+                        اعتماد الاختبار
+                    </flux:button>
+                @endif
+
+                @if($exam->total_score !== null)
+                    <div class="text-end">
+                        <p class="text-4xl font-black {{ $exam->is_passed ? 'text-success-600' : 'text-danger-500' }}">
+                            {{ number_format($exam->total_score, 1) }}
+                            <span class="text-sm font-normal text-neutral-400">/ 100</span>
+                        </p>
+                        <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded-full {{ $exam->is_passed ? 'bg-success-50 text-success-700' : 'bg-danger-50 text-danger-600' }}">
+                            {{ $exam->is_passed ? '✓ مجاز' : '✗ غير مجاز' }}
+                        </span>
+                    </div>
+                @endif
+            </div>
         </div>
 
         {{-- Student / examiner info --}}
