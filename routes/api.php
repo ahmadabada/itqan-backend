@@ -15,7 +15,7 @@ Route::prefix('v1')->group(function () {
     // Auth — login is public, the rest require a token
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:api-auth');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
