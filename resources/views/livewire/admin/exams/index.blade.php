@@ -6,7 +6,7 @@
             <h2 class="text-xl sm:text-2xl font-bold text-neutral-900">الاختبارات</h2>
             <p class="text-neutral-500 text-xs sm:text-sm mt-0.5">{{ $exams->total() }} اختبار</p>
         </div>
-        <flux:button wire:click="export" size="sm" icon="arrow-down-tray">
+        <flux:button wire:click="openExportModal" size="sm" icon="arrow-down-tray">
             تصدير Excel
         </flux:button>
     </div>
@@ -270,5 +270,78 @@
             </div>
         @endif
     </div>
+
+    {{-- ── Export columns modal ──────────────────────────────────────────
+         Alpine `open` is two-way entangled with Livewire's $showExportModal so
+         that clicking "تصدير" can set open=false locally (instant visual close)
+         AND piggyback the same state change to the server inside the export()
+         request payload — necessary because export() returns a download Response,
+         which does NOT propagate state updates back to the client. --}}
+    @if($showExportModal)
+        @php
+            $columnLabels = \App\Livewire\Admin\Exams\Index::EXPORT_COLUMN_LABELS;
+        @endphp
+        <div
+            x-data="{ open: $wire.entangle('showExportModal') }"
+            x-show="open"
+            x-cloak
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+        >
+            <div class="bg-white rounded-2xl w-full max-w-md shadow-xl" @click.outside="open = false">
+
+                <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
+                    <h3 class="text-lg font-bold text-neutral-900">اختر أعمدة التصدير</h3>
+                    <button @click="open = false" class="text-neutral-400 hover:text-neutral-600">✕</button>
+                </div>
+
+                <div class="px-6 py-5">
+                    <div class="flex items-center gap-3 mb-4 text-xs">
+                        <button
+                            type="button"
+                            x-on:click="Object.keys($wire.exportColumns).forEach(k => $wire.set('exportColumns.' + k, true))"
+                            class="text-primary-600 hover:text-primary-700 font-medium"
+                        >
+                            تحديد الكل
+                        </button>
+                        <span class="text-neutral-300">·</span>
+                        <button
+                            type="button"
+                            x-on:click="Object.keys($wire.exportColumns).forEach(k => $wire.set('exportColumns.' + k, false))"
+                            class="text-neutral-500 hover:text-neutral-700 font-medium"
+                        >
+                            إلغاء التحديد
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        @foreach($columnLabels as $key => $label)
+                            <label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    wire:model.live="exportColumns.{{ $key }}"
+                                    class="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                                />
+                                <span class="text-sm text-neutral-700">{{ $label }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+
+                    <p class="text-xs text-neutral-500 mt-4">
+                        التصدير سيشمل كل الاختبارات المطابقة للفلاتر الحالية ({{ number_format($totalCount) }} اختبار) بنفس ترتيب العرض.
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-3 px-6 py-4 border-t border-neutral-100 bg-neutral-50/50 rounded-b-2xl">
+                    <flux:button type="button" @click="open = false" variant="outline">
+                        إلغاء
+                    </flux:button>
+                    <flux:button type="button" @click="open = false; $wire.export()" variant="primary" icon="arrow-down-tray">
+                        تصدير
+                    </flux:button>
+                </div>
+
+            </div>
+        </div>
+    @endif
 
 </div>

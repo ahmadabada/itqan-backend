@@ -57,6 +57,40 @@ class Index extends Component
     #[Url(as: 'dir')]
     public string $sortDir = 'desc';
 
+    // Export modal state. NOT persisted in URL — purely UI/session.
+    public bool $showExportModal = false;
+
+    // Per-column include flag. Keys match the match() arms in export().
+    // Defaults to all-on; openExportModal() resets to this set on every open.
+    public array $exportColumns = [
+        'id'           => true,
+        'student_name' => true,
+        'national_id'  => true,
+        'zone'         => true,
+        'gender'       => true,
+        'examiner'     => true,
+        'exam_type'    => true,
+        'score'        => true,
+        'passed'       => true,
+        'status'       => true,
+        'started_at'   => true,
+    ];
+
+    // Human labels — shared between the modal checkboxes and the Excel header row.
+    public const EXPORT_COLUMN_LABELS = [
+        'id'           => '#',
+        'student_name' => 'اسم الطالب',
+        'national_id'  => 'رقم الهوية',
+        'zone'         => 'المنطقة',
+        'gender'       => 'الجنس',
+        'examiner'     => 'المختبر',
+        'exam_type'    => 'النوع',
+        'score'        => 'الدرجة',
+        'passed'       => 'مجاز؟',
+        'status'       => 'الحالة',
+        'started_at'   => 'تاريخ البدء',
+    ];
+
     public function mount(): void
     {
         $user = Auth::user();
@@ -163,8 +197,23 @@ class Index extends Component
             ->when($this->passedFilter === 'failed', fn($q) => $q->whereNotNull('total_score')->where('total_score', '<', $passingScore));
     }
 
+    public function openExportModal(): void
+    {
+        // Reset to all-selected on every open so toggling off-columns in one
+        // session doesn't silently carry over to the next export attempt.
+        $this->exportColumns = array_fill_keys(array_keys(self::EXPORT_COLUMN_LABELS), true);
+        $this->showExportModal = true;
+    }
+
     public function export()
     {
+        // Honor the modal's column toggles — at least one must be selected.
+        $selectedKeys = array_keys(array_filter($this->exportColumns));
+        if (empty($selectedKeys)) {
+            $this->dispatch('notify', type: 'error', message: 'اختر عموداً واحداً على الأقل.');
+            return null;
+        }
+
         $passingScore = ScoreCalculator::passingScore();
         $allowedSort  = ['created_at', 'started_at', 'completed_at', 'total_score', 'status'];
         $sortBy       = in_array($this->sortBy, $allowedSort) ? $this->sortBy : 'created_at';
@@ -174,21 +223,27 @@ class Index extends Component
             ->orderBy($sortBy, $this->sortDir)
             ->get();
 
+        // Preserve the canonical column order (LABELS array order), even if the
+        // user toggled checkboxes in a different sequence.
+        $orderedKeys = array_keys(array_intersect_key(self::EXPORT_COLUMN_LABELS, array_flip($selectedKeys)));
+
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setRightToLeft(true);
         $sheet->setTitle('الاختبارات');
 
-        $headers = ['#', 'اسم الطالب', 'رقم الهوية', 'المنطقة', 'الجنس', 'المختبر', 'النوع', 'الدرجة', 'مجاز؟', 'الحالة', 'تاريخ البدء'];
-        foreach ($headers as $i => $h) {
-            $sheet->setCellValueByColumnAndRow($i + 1, 1, $h);
+        // Header row — PhpSpreadsheet 2.x+ removed setCellValueByColumnAndRow();
+        // use the array-coords form [col, row].
+        foreach ($orderedKeys as $i => $key) {
+            $sheet->setCellValue([$i + 1, 1], self::EXPORT_COLUMN_LABELS[$key]);
         }
-        $sheet->getStyle('A1:K1')->getFont()->setBold(true);
-        $sheet->getStyle('A1:K1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($orderedKeys));
+        $sheet->getStyle("A1:{$lastCol}1")->getFont()->setBold(true);
+        $sheet->getStyle("A1:{$lastCol}1")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $zones = [
-            'East Gaza' => 'شرق غزة',
-            'West Gaza' => 'غرب غزة',
+            'East Gaza'  => 'شرق غزة',
+            'West Gaza'  => 'غرب غزة',
             'North Gaza' => 'شمال غزة',
             'South Gaza' => 'جنوب غزة',
         ];
@@ -199,21 +254,27 @@ class Index extends Component
             $score    = $exam->total_score !== null ? (float) $exam->total_score : null;
             $isPassed = $score !== null ? ($score >= $passingScore) : null;
 
-            $sheet->setCellValueByColumnAndRow(1,  $rowNum, $exam->id);
-            $sheet->setCellValueByColumnAndRow(2,  $rowNum, $student?->fullName() ?? '');
-            $sheet->setCellValueByColumnAndRow(3,  $rowNum, $student?->national_id ?? '');
-            $sheet->setCellValueByColumnAndRow(4,  $rowNum, $zones[$student?->student_zone] ?? $student?->student_zone ?? '');
-            $sheet->setCellValueByColumnAndRow(5,  $rowNum, $student?->gender?->label() ?? '');
-            $sheet->setCellValueByColumnAndRow(6,  $rowNum, $exam->examiner?->fullName() ?? '');
-            $sheet->setCellValueByColumnAndRow(7,  $rowNum, $exam->exam_type?->label() ?? '');
-            $sheet->setCellValueByColumnAndRow(8,  $rowNum, $score);
-            $sheet->setCellValueByColumnAndRow(9,  $rowNum, $isPassed === null ? '' : ($isPassed ? 'نعم' : 'لا'));
-            $sheet->setCellValueByColumnAndRow(10, $rowNum, $exam->status?->label() ?? '');
-            $sheet->setCellValueByColumnAndRow(11, $rowNum, $exam->started_at?->format('Y-m-d H:i') ?? '');
+            foreach ($orderedKeys as $i => $key) {
+                $value = match ($key) {
+                    'id'           => $exam->id,
+                    'student_name' => $student?->fullName() ?? '',
+                    'national_id'  => $student?->national_id ?? '',
+                    'zone'         => $zones[$student?->student_zone] ?? $student?->student_zone ?? '',
+                    'gender'       => $student?->gender?->label() ?? '',
+                    'examiner'     => $exam->examiner?->fullName() ?? '',
+                    'exam_type'    => $exam->exam_type?->label() ?? '',
+                    'score'        => $score,
+                    'passed'       => $isPassed === null ? '' : ($isPassed ? 'نعم' : 'لا'),
+                    'status'       => $exam->status?->label() ?? '',
+                    'started_at'   => $exam->started_at?->format('Y-m-d H:i') ?? '',
+                };
+                $sheet->setCellValue([$i + 1, $rowNum], $value);
+            }
             $rowNum++;
         }
 
-        foreach (range('A', 'K') as $col) {
+        for ($i = 1; $i <= count($orderedKeys); $i++) {
+            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
