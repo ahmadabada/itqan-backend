@@ -1,11 +1,14 @@
 <div class="p-4 sm:p-6 lg:p-8">
 
     {{-- Header --}}
-    <div class="flex items-center justify-between mb-5 sm:mb-6">
+    <div class="flex items-center justify-between mb-5 sm:mb-6 gap-3 flex-wrap">
         <div>
             <h2 class="text-xl sm:text-2xl font-bold text-neutral-900">الاختبارات</h2>
             <p class="text-neutral-500 text-xs sm:text-sm mt-0.5">{{ $exams->total() }} اختبار</p>
         </div>
+        <flux:button wire:click="export" size="sm" icon="arrow-down-tray">
+            تصدير Excel
+        </flux:button>
     </div>
 
     {{-- Filters --}}
@@ -46,15 +49,56 @@
                 </flux:select>
             </div>
 
+            <div>
+                <label class="block text-xs text-neutral-500 mb-1">من درجة</label>
+                <flux:input type="number" min="0" max="100" step="0.5" wire:model.live.debounce.400ms="minScore" placeholder="0" size="sm" />
+            </div>
+
+            <div>
+                <label class="block text-xs text-neutral-500 mb-1">إلى درجة</label>
+                <flux:input type="number" min="0" max="100" step="0.5" wire:model.live.debounce.400ms="maxScore" placeholder="100" size="sm" />
+            </div>
+
+            <div>
+                <label class="block text-xs text-neutral-500 mb-1">الإجازة (≥ {{ $passingScore }})</label>
+                <flux:select wire:model.live="passedFilter" size="sm">
+                    <flux:select.option value="">الكل</flux:select.option>
+                    <flux:select.option value="passed">مجاز فقط</flux:select.option>
+                    <flux:select.option value="failed">غير مجاز فقط</flux:select.option>
+                </flux:select>
+            </div>
+
         </div>
 
-        @if($search || $statusFilter || $examinerFilter || $genderFilter)
+        @if($search || $statusFilter !== 'approved' || $examinerFilter || $genderFilter || $minScore !== '' || $maxScore !== '' || $passedFilter)
             <div class="mt-3 pt-3 border-t border-neutral-100">
                 <button wire:click="clearFilters" class="text-xs text-neutral-500 hover:text-danger-600 transition-colors">
                     مسح الفلاتر
                 </button>
             </div>
         @endif
+    </div>
+
+    {{-- Counter card — reflects the active filter set --}}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div class="bg-white rounded-xl border border-neutral-200 p-4">
+            <p class="text-xs text-neutral-500 mb-1">المجموع</p>
+            <p class="text-2xl font-bold text-neutral-900 tabular-nums">{{ number_format($totalCount) }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-success-100 p-4">
+            <p class="text-xs text-success-600 mb-1">المجازون</p>
+            <p class="text-2xl font-bold text-success-700 tabular-nums">{{ number_format($passedCount) }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-danger-100 p-4">
+            <p class="text-xs text-danger-600 mb-1">غير مجازين</p>
+            <p class="text-2xl font-bold text-danger-600 tabular-nums">{{ number_format($failedCount) }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-primary-100 p-4">
+            <p class="text-xs text-primary-600 mb-1">متوسط الدرجة</p>
+            <p class="text-2xl font-bold text-primary-700 tabular-nums">
+                {{ $avgScore !== null ? number_format($avgScore, 1) : '—' }}
+            </p>
+        </div>
     </div>
 
     {{-- Table --}}

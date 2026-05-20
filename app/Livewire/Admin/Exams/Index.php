@@ -8,12 +8,17 @@ use App\Models\AuditLog;
 use App\Models\Exam;
 use App\Models\User;
 use App\Services\ArabicSearch;
+use App\Services\ScoreCalculator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 #[Layout('layouts.admin')]
 #[Title('الاختبارات')]
@@ -24,14 +29,27 @@ class Index extends Component
     #[Url(as: 'q')]
     public string $search = '';
 
+    // Default to "approved" — the official counted exams. Admins can switch to
+    // "الكل" or another status from the dropdown. clearFilters() returns here.
     #[Url(as: 'status')]
-    public string $statusFilter = '';
+    public string $statusFilter = 'approved';
 
     #[Url(as: 'examiner')]
     public string $examinerFilter = '';
 
     #[Url(as: 'gender')]
     public string $genderFilter = '';
+
+    #[Url(as: 'min')]
+    public string $minScore = '';
+
+    #[Url(as: 'max')]
+    public string $maxScore = '';
+
+    // '' | passed | failed. Evaluated live against ScoreCalculator::passingScore()
+    // so a settings change immediately shifts the cohort, matching is_passed.
+    #[Url(as: 'pass')]
+    public string $passedFilter = '';
 
     #[Url(as: 'sort')]
     public string $sortBy = 'created_at';
@@ -49,7 +67,7 @@ class Index extends Component
 
     public function updating($name): void
     {
-        if (in_array($name, ['search', 'statusFilter', 'examinerFilter', 'genderFilter'])) {
+        if (in_array($name, ['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'minScore', 'maxScore', 'passedFilter'])) {
             $this->resetPage();
         }
     }
@@ -66,7 +84,7 @@ class Index extends Component
 
     public function clearFilters(): void
     {
-        $this->reset(['search', 'statusFilter', 'examinerFilter', 'genderFilter']);
+        $this->reset(['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'minScore', 'maxScore', 'passedFilter']);
         $this->resetPage();
     }
 
@@ -118,13 +136,14 @@ class Index extends Component
         );
     }
 
-    public function render()
+    // Builds the filtered base query — reused by the table (with pagination),
+    // the counter card aggregates, and the Excel export so all three stay in
+    // lockstep with the current filter state.
+    private function filteredQuery(): Builder
     {
-        $allowedSort = ['created_at', 'started_at', 'completed_at', 'total_score', 'status'];
-        $sortBy      = in_array($this->sortBy, $allowedSort) ? $this->sortBy : 'created_at';
+        $passingScore = ScoreCalculator::passingScore();
 
-        $exams = Exam::query()
-            ->with(['student.master', 'examiner'])
+        return Exam::query()
             ->when($this->search, fn($q) => $q->whereHas('student', fn($s) =>
                 ArabicSearch::applyTo(
                     $s,
@@ -138,17 +157,108 @@ class Index extends Component
             ->when($this->genderFilter, fn($q) =>
                 $q->whereHas('student', fn($s) => $s->where('gender', $this->genderFilter))
             )
+            ->when(is_numeric($this->minScore), fn($q) => $q->where('total_score', '>=', (float) $this->minScore))
+            ->when(is_numeric($this->maxScore), fn($q) => $q->where('total_score', '<=', (float) $this->maxScore))
+            ->when($this->passedFilter === 'passed', fn($q) => $q->where('total_score', '>=', $passingScore))
+            ->when($this->passedFilter === 'failed', fn($q) => $q->whereNotNull('total_score')->where('total_score', '<', $passingScore));
+    }
+
+    public function export()
+    {
+        $passingScore = ScoreCalculator::passingScore();
+        $allowedSort  = ['created_at', 'started_at', 'completed_at', 'total_score', 'status'];
+        $sortBy       = in_array($this->sortBy, $allowedSort) ? $this->sortBy : 'created_at';
+
+        $rows = $this->filteredQuery()
+            ->with(['student.master', 'examiner'])
+            ->orderBy($sortBy, $this->sortDir)
+            ->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setRightToLeft(true);
+        $sheet->setTitle('الاختبارات');
+
+        $headers = ['#', 'اسم الطالب', 'رقم الهوية', 'المنطقة', 'الجنس', 'المختبر', 'النوع', 'الدرجة', 'مجاز؟', 'الحالة', 'تاريخ البدء'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValueByColumnAndRow($i + 1, 1, $h);
+        }
+        $sheet->getStyle('A1:K1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:K1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $zones = [
+            'East Gaza' => 'شرق غزة',
+            'West Gaza' => 'غرب غزة',
+            'North Gaza' => 'شمال غزة',
+            'South Gaza' => 'جنوب غزة',
+        ];
+
+        $rowNum = 2;
+        foreach ($rows as $exam) {
+            $student  = $exam->student?->master ?? $exam->student;
+            $score    = $exam->total_score !== null ? (float) $exam->total_score : null;
+            $isPassed = $score !== null ? ($score >= $passingScore) : null;
+
+            $sheet->setCellValueByColumnAndRow(1,  $rowNum, $exam->id);
+            $sheet->setCellValueByColumnAndRow(2,  $rowNum, $student?->fullName() ?? '');
+            $sheet->setCellValueByColumnAndRow(3,  $rowNum, $student?->national_id ?? '');
+            $sheet->setCellValueByColumnAndRow(4,  $rowNum, $zones[$student?->student_zone] ?? $student?->student_zone ?? '');
+            $sheet->setCellValueByColumnAndRow(5,  $rowNum, $student?->gender?->label() ?? '');
+            $sheet->setCellValueByColumnAndRow(6,  $rowNum, $exam->examiner?->fullName() ?? '');
+            $sheet->setCellValueByColumnAndRow(7,  $rowNum, $exam->exam_type?->label() ?? '');
+            $sheet->setCellValueByColumnAndRow(8,  $rowNum, $score);
+            $sheet->setCellValueByColumnAndRow(9,  $rowNum, $isPassed === null ? '' : ($isPassed ? 'نعم' : 'لا'));
+            $sheet->setCellValueByColumnAndRow(10, $rowNum, $exam->status?->label() ?? '');
+            $sheet->setCellValueByColumnAndRow(11, $rowNum, $exam->started_at?->format('Y-m-d H:i') ?? '');
+            $rowNum++;
+        }
+
+        foreach (range('A', 'K') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $tmp = tempnam(sys_get_temp_dir(), 'exams_') . '.xlsx';
+        (new Xlsx($spreadsheet))->save($tmp);
+
+        $filename = 'exams_' . now()->format('Y-m-d_His') . '.xlsx';
+        return response()->download($tmp, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend();
+    }
+
+    public function render()
+    {
+        $allowedSort = ['created_at', 'started_at', 'completed_at', 'total_score', 'status'];
+        $sortBy      = in_array($this->sortBy, $allowedSort) ? $this->sortBy : 'created_at';
+        $passingScore = ScoreCalculator::passingScore();
+
+        $base = $this->filteredQuery();
+
+        $exams = (clone $base)
+            ->with(['student.master', 'examiner'])
             ->orderBy($sortBy, $this->sortDir)
             ->paginate(25);
+
+        // Aggregates against the same filtered set (NOT against the paginated
+        // 25 rows). Each clone resets the WHERE chain so the counts are exact.
+        $totalCount   = (clone $base)->count();
+        $passedCount  = (clone $base)->where('total_score', '>=', $passingScore)->count();
+        $failedCount  = (clone $base)->whereNotNull('total_score')->where('total_score', '<', $passingScore)->count();
+        $avgScore     = (clone $base)->whereNotNull('total_score')->avg('total_score');
 
         $examiners = User::where('role', UserRole::Examiner)
             ->orderBy('first_name')
             ->get(['id', 'first_name', 'second_name', 'third_name', 'family_name']);
 
         return view('livewire.admin.exams.index', [
-            'exams'     => $exams,
-            'examiners' => $examiners,
-            'statuses'  => ExamStatus::cases(),
+            'exams'        => $exams,
+            'examiners'    => $examiners,
+            'statuses'     => ExamStatus::cases(),
+            'totalCount'   => $totalCount,
+            'passedCount'  => $passedCount,
+            'failedCount'  => $failedCount,
+            'avgScore'     => $avgScore !== null ? (float) $avgScore : null,
+            'passingScore' => $passingScore,
         ]);
     }
 }
