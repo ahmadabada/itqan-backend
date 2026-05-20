@@ -24,14 +24,14 @@
             <flux:select.option value="female">أنثى</flux:select.option>
         </flux:select>
 
-        <label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 bg-white cursor-pointer hover:bg-neutral-50 transition-colors text-sm">
+        <!-- <label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 bg-white cursor-pointer hover:bg-neutral-50 transition-colors text-sm">
             <input
                 type="checkbox"
                 wire:model.live="showMerged"
                 class="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
             >
             <span class="text-neutral-700">إظهار المدموجين</span>
-        </label>
+        </label> -->
     </div>
 
     {{-- Table --}}

@@ -29,7 +29,7 @@ class Dashboard extends Component
 
         return view('livewire.admin.dashboard', [
             'user'               => Auth::user(),
-            'totalStudents'      => Student::count(),
+            'totalStudents'      => Student::notMerged()->count(),
             'totalUsers'         => User::where('is_super_admin', false)->count(),
             'totalExams'         => Exam::count(),
             'approvedExams'      => Exam::where('status', ExamStatus::Approved)->count(),
