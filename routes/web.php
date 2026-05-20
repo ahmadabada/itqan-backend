@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\UserRole;
+use App\Livewire\Admin\AuditLogs\Index as AdminAuditLogs;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\Devices\Index as AdminDevices;
 use App\Livewire\Admin\Exams\Index as AdminExamsIndex;
@@ -67,6 +68,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('merges/history',               AdminMergesHistory::class)->name('merges.history');
     Route::get('merges/history/{operation}',   AdminMergeShow::class)->name('merges.show')->whereNumber('operation');
     Route::get('devices',           AdminDevices::class)->name('devices');
+    Route::get('audit-logs',        AdminAuditLogs::class)->name('audit-logs');
     Route::get('settings',          AdminSettings::class)->name('settings');
 });
 

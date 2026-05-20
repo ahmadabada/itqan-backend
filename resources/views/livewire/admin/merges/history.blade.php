@@ -1,5 +1,7 @@
 <div class="p-4 sm:p-6 lg:p-8">
 
+    @include('livewire.admin.merges._tabs')
+
     {{-- Header --}}
     <div class="flex items-center justify-between mb-5 sm:mb-6 gap-3">
         <div class="min-w-0">

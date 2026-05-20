@@ -62,8 +62,8 @@ class Index extends Component
 
     // Per-column include flag. Keys match the match() arms in export().
     // Defaults to all-on; openExportModal() resets to this set on every open.
+    // Note: the serial '#' column is rendered unconditionally and is NOT toggleable.
     public array $exportColumns = [
-        'id'           => true,
         'student_name' => true,
         'national_id'  => true,
         'zone'         => true,
@@ -78,7 +78,6 @@ class Index extends Component
 
     // Human labels — shared between the modal checkboxes and the Excel header row.
     public const EXPORT_COLUMN_LABELS = [
-        'id'           => '#',
         'student_name' => 'اسم الطالب',
         'national_id'  => 'رقم الهوية',
         'zone'         => 'المنطقة',
@@ -232,12 +231,14 @@ class Index extends Component
         $sheet->setRightToLeft(true);
         $sheet->setTitle('الاختبارات');
 
-        // Header row — PhpSpreadsheet 2.x+ removed setCellValueByColumnAndRow();
-        // use the array-coords form [col, row].
+        // Header row — column 1 is the always-present serial number, then the
+        // user-selected columns follow. PhpSpreadsheet 2.x+ array-coords form [col, row].
+        $sheet->setCellValue([1, 1], '#');
         foreach ($orderedKeys as $i => $key) {
-            $sheet->setCellValue([$i + 1, 1], self::EXPORT_COLUMN_LABELS[$key]);
+            $sheet->setCellValue([$i + 2, 1], self::EXPORT_COLUMN_LABELS[$key]);
         }
-        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($orderedKeys));
+        $totalCols = count($orderedKeys) + 1;
+        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($totalCols);
         $sheet->getStyle("A1:{$lastCol}1")->getFont()->setBold(true);
         $sheet->getStyle("A1:{$lastCol}1")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
@@ -249,14 +250,15 @@ class Index extends Component
         ];
 
         $rowNum = 2;
+        $serial = 1;
         foreach ($rows as $exam) {
             $student  = $exam->student?->master ?? $exam->student;
             $score    = $exam->total_score !== null ? (float) $exam->total_score : null;
             $isPassed = $score !== null ? ($score >= $passingScore) : null;
 
+            $sheet->setCellValue([1, $rowNum], $serial++);
             foreach ($orderedKeys as $i => $key) {
                 $value = match ($key) {
-                    'id'           => $exam->id,
                     'student_name' => $student?->fullName() ?? '',
                     'national_id'  => $student?->national_id ?? '',
                     'zone'         => $zones[$student?->student_zone] ?? $student?->student_zone ?? '',
@@ -268,12 +270,12 @@ class Index extends Component
                     'status'       => $exam->status?->label() ?? '',
                     'started_at'   => $exam->started_at?->format('Y-m-d H:i') ?? '',
                 };
-                $sheet->setCellValue([$i + 1, $rowNum], $value);
+                $sheet->setCellValue([$i + 2, $rowNum], $value);
             }
             $rowNum++;
         }
 
-        for ($i = 1; $i <= count($orderedKeys); $i++) {
+        for ($i = 1; $i <= $totalCols; $i++) {
             $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }

@@ -38,8 +38,7 @@
                 'title' => 'البيانات',
                 'items' => [
                     ['route' => 'admin.students',             'label' => 'الطلاب', 'pattern' => 'admin/students*', 'icon' => 'users'],
-                    ['route' => 'admin.merges',               'label' => 'دمج الطلاب', 'pattern' => 'admin/merges', 'icon' => 'merge', 'super_admin_only' => true],
-                    ['route' => 'admin.merges.history',       'label' => 'سجل الدمج', 'pattern' => 'admin/merges/history*', 'icon' => 'history', 'super_admin_only' => true],
+                    ['route' => 'admin.merges',               'label' => 'إدارة الدمج', 'pattern' => 'admin/merges*', 'icon' => 'merge', 'super_admin_only' => true],
                     ['route' => 'admin.devices',              'label' => 'الأجهزة', 'pattern' => 'admin/devices*', 'icon' => 'phone'],
                     ['route' => 'admin.recitation-questions', 'label' => 'بنك الأسئلة', 'pattern' => 'admin/recitation-questions*', 'icon' => 'book'],
                     ['route' => 'admin.suggested-students',    'label' => 'الطلاب المقترحون', 'pattern' => 'admin/suggested-students*', 'icon' => 'users'],
@@ -50,6 +49,7 @@
             [
                 'title' => 'النظام',
                 'items' => [
+                    ['route' => 'admin.audit-logs', 'label' => 'سجل النشاط', 'pattern' => 'admin/audit-logs*', 'icon' => 'history', 'super_admin_only' => true],
                     ['route' => 'admin.settings', 'label' => 'الإعدادات', 'pattern' => 'admin/settings', 'icon' => 'cog'],
                 ],
             ],
