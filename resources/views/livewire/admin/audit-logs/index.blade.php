@@ -41,8 +41,22 @@
             <thead class="bg-neutral-50 border-b border-neutral-200">
                 <tr>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
-                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">التاريخ</th>
-                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">المستخدم</th>
+                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">
+                        <button wire:click="sort('user_id')" class="flex items-center gap-1 hover:text-neutral-900">
+                            المستخدم
+                            @if($sortBy === 'user_id')
+                                <span class="text-primary-500">{{ $sortDir === 'asc' ? '↑' : '↓' }}</span>
+                            @endif
+                        </button>
+                    </th>
+                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">
+                        <button wire:click="sort('created_at')" class="flex items-center gap-1 hover:text-neutral-900">
+                            تاريخ ووقت
+                            @if($sortBy === 'created_at')
+                                <span class="text-primary-500">{{ $sortDir === 'asc' ? '↑' : '↓' }}</span>
+                            @endif
+                        </button>
+                    </th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الإجراء</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">السياق</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">IP</th>
@@ -54,9 +68,6 @@
                     @php $isOpen = in_array($log->id, $expanded, true); @endphp
                     <tr class="hover:bg-neutral-50 transition-colors">
                         <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration + ($logs->firstItem() ?? 1) - 1 }}</td>
-                        <td class="px-4 py-3 text-neutral-600 text-xs">
-                            {{ $log->created_at?->format('Y-m-d g:i A') ?? '—' }}
-                        </td>
                         <td class="px-4 py-3">
                             @if($log->user)
                                 <p class="font-medium text-neutral-900">{{ $log->user->fullName() }}</p>
@@ -64,6 +75,9 @@
                             @else
                                 <span class="text-neutral-300">—</span>
                             @endif
+                        </td>
+                        <td class="px-4 py-3 text-neutral-600 text-xs">
+                            {{ $log->created_at?->format('Y-m-d g:i A') ?? '—' }}
                         </td>
                         <td class="px-4 py-3">
                             <span class="text-xs px-2 py-0.5 rounded-full bg-primary-50 text-primary-700">

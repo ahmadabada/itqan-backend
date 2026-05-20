@@ -30,6 +30,12 @@ class Index extends Component
     #[Url(as: 'to')]
     public string $dateTo = '';
 
+    #[Url(as: 'sort')]
+    public string $sortBy = 'created_at';
+
+    #[Url(as: 'dir')]
+    public string $sortDir = 'desc';
+
     public array $expanded = [];
 
     public const ACTION_LABELS = [
@@ -80,6 +86,20 @@ class Index extends Component
         }
     }
 
+    public function sort(string $column): void
+    {
+        if (! in_array($column, ['user_id', 'created_at'], true)) {
+            return;
+        }
+        if ($this->sortBy === $column) {
+            $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortBy  = $column;
+            $this->sortDir = $column === 'user_id' ? 'asc' : 'desc';
+        }
+        $this->resetPage();
+    }
+
     public function clearFilters(): void
     {
         $this->reset(['actionFilter', 'userFilter', 'dateFrom', 'dateTo']);
@@ -88,14 +108,25 @@ class Index extends Component
 
     public function render()
     {
-        $logs = AuditLog::query()
+        $sortBy  = in_array($this->sortBy, ['user_id', 'created_at'], true) ? $this->sortBy : 'created_at';
+        $sortDir = $this->sortDir === 'asc' ? 'asc' : 'desc';
+
+        $query = AuditLog::query()
             ->when($this->actionFilter, fn($q) => $q->where('action', $this->actionFilter))
             ->when($this->userFilter, fn($q) => $q->where('user_id', $this->userFilter))
             ->when($this->dateFrom, fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
             ->when($this->dateTo, fn($q) => $q->whereDate('created_at', '<=', $this->dateTo))
-            ->with(['user:id,first_name,family_name,role'])
-            ->orderByDesc('created_at')
-            ->paginate(30);
+            ->with(['user:id,first_name,family_name,role']);
+
+        // When sorting by user, sub-order by date DESC so each user's most
+        // recent activity surfaces first inside their group.
+        if ($sortBy === 'user_id') {
+            $query->orderBy('user_id', $sortDir)->orderByDesc('created_at');
+        } else {
+            $query->orderBy('created_at', $sortDir);
+        }
+
+        $logs = $query->paginate(30);
 
         // Distinct actions actually present in the table — keeps the dropdown
         // free of action keys we've never logged.
