@@ -26,7 +26,8 @@ class Index extends Component
     public string $search          = '';
     public string $genderFilter    = '';
     public string $statusFilter    = 'not_merged'; // not_merged | merged | all
-    public bool   $onlyDuplicates  = false;
+    // '' = no filter | 'national_id' = same national_id | 'name' = same first+second+family.
+    public string $duplicateFilter = '';
 
     public array $selectedIds = [];
 
@@ -70,7 +71,7 @@ class Index extends Component
         $this->resetPage();
     }
 
-    public function updatingOnlyDuplicates(): void
+    public function updatingDuplicateFilter(): void
     {
         $this->resetPage();
     }
@@ -202,6 +203,8 @@ class Index extends Component
 
     public function render()
     {
+        $byName = $this->duplicateFilter === 'name';
+
         $students = Student::query()
             ->when($this->search, fn($q) => ArabicSearch::applyTo(
                 $q,
@@ -212,7 +215,8 @@ class Index extends Component
             ->when($this->genderFilter, fn($q) => $q->where('gender', $this->genderFilter))
             ->when($this->statusFilter === 'not_merged', fn($q) => $q->whereNull('master_id'))
             ->when($this->statusFilter === 'merged',     fn($q) => $q->whereNotNull('master_id'))
-            ->when($this->onlyDuplicates, fn($q) => $q->whereIn('national_id', function ($sub) {
+            // Same national_id duplicates (NULLs excluded so empty IDs don't all match).
+            ->when($this->duplicateFilter === 'national_id', fn($q) => $q->whereIn('national_id', function ($sub) {
                 $sub->from('students')
                     ->select('national_id')
                     ->whereNotNull('national_id')
@@ -220,9 +224,29 @@ class Index extends Component
                     ->groupBy('national_id')
                     ->havingRaw('COUNT(*) > 1');
             }))
+            // Same name triple (first + second + family). whereExists handles
+            // NULL-vs-NULL equality on second_name explicitly — otherwise standard
+            // SQL would treat two NULL second_names as non-equal.
+            ->when($byName, fn($q) => $q->whereExists(function ($sub) {
+                $sub->from('students as dup')
+                    ->whereColumn('dup.first_name',  'students.first_name')
+                    ->whereColumn('dup.family_name', 'students.family_name')
+                    ->whereColumn('dup.id', '!=', 'students.id')
+                    ->whereNull('dup.deleted_at')
+                    ->where(function ($n) {
+                        $n->whereColumn('dup.second_name', 'students.second_name')
+                          ->orWhere(function ($both) {
+                              $both->whereNull('dup.second_name')->whereNull('students.second_name');
+                          });
+                    });
+            }))
             ->withCount('exams')
-            ->orderBy('national_id')
-            ->orderBy('family_name')
+            // Surface duplicates as adjacent rows: when filtering by name, order
+            // by the name triple; otherwise fall back to national_id grouping.
+            ->when($byName,
+                fn($q) => $q->orderBy('first_name')->orderBy('second_name')->orderBy('family_name'),
+                fn($q) => $q->orderBy('national_id')->orderBy('family_name'),
+            )
             ->paginate(50);
 
         return view('livewire.admin.merges.index', [

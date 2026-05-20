@@ -43,19 +43,20 @@
             <flux:select.option value="all">الكل</flux:select.option>
         </flux:select>
 
-        <label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-neutral-200 bg-white cursor-pointer hover:bg-neutral-50 transition-colors text-sm">
-            <input
-                type="checkbox"
-                wire:model.live="onlyDuplicates"
-                class="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-            >
-            <span class="text-neutral-700">المكررين فقط</span>
-        </label>
+        <flux:select wire:model.live="duplicateFilter" class="max-w-[220px]">
+            <flux:select.option value="">بدون فلتر التكرار</flux:select.option>
+            <flux:select.option value="national_id">المكررين برقم الهوية</flux:select.option>
+            <flux:select.option value="name">المكررين بالاسم (الأول والثاني والعائلة)</flux:select.option>
+        </flux:select>
     </div>
 
     {{-- Hint --}}
     <p class="text-xs text-neutral-500 mb-3">
-        النتائج مرتّبة حسب <span class="font-mono">national_id</span> — السجلات المكرّرة تظهر متجاورة.
+        @if($duplicateFilter === 'name')
+            النتائج مرتّبة حسب الاسم — السجلات بنفس <span class="font-medium">الأول والثاني والعائلة</span> تظهر متجاورة.
+        @else
+            النتائج مرتّبة حسب <span class="font-mono">national_id</span> — السجلات المكرّرة تظهر متجاورة.
+        @endif
     </p>
 
     {{-- Table --}}
