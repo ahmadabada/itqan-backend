@@ -70,7 +70,7 @@
             </div>
 
             <div>
-                <label class="block text-xs text-neutral-500 mb-1">الإجازة (≥ {{ $passingScore }})</label>
+                <label class="block text-xs text-neutral-500 mb-1">الإجازة (ذكور ≥ {{ $passingScoreMale }} / إناث ≥ {{ $passingScoreFemale }})</label>
                 <flux:select wire:model.live="passedFilter" size="sm">
                     <flux:select.option value="">الكل</flux:select.option>
                     <flux:select.option value="passed">مجاز فقط</flux:select.option>

@@ -15,7 +15,19 @@ class SystemSettingsSeeder extends Seeder
                 'key'         => 'passing_score',
                 'value'       => '60',
                 'value_type'  => SettingValueType::Int,
-                'description' => 'درجة الإجازة من 100',
+                'description' => 'درجة الإجازة من 100 (fallback إذا لم يوجد المفتاح حسب الجنس)',
+            ],
+            [
+                'key'         => 'passing_score_male',
+                'value'       => '60',
+                'value_type'  => SettingValueType::Int,
+                'description' => 'درجة الإجازة للذكور من 100',
+            ],
+            [
+                'key'         => 'passing_score_female',
+                'value'       => '60',
+                'value_type'  => SettingValueType::Int,
+                'description' => 'درجة الإجازة للإناث من 100',
             ],
             [
                 'key'         => 'results_query_enabled',

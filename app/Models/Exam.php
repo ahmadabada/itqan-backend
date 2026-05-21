@@ -43,14 +43,15 @@ class Exam extends Model
         ];
     }
 
-    // Computed live from the current passing_score setting — never stored.
+    // Computed live from the current passing_score_{gender} setting — never stored.
     // Why: when admin raises the threshold, historical exams must reflect the new rule.
+    // Callers must eager-load `student:id,gender` to avoid N+1 in list views.
     public function getIsPassedAttribute(): ?bool
     {
         if ($this->total_score === null) {
             return null;
         }
-        return ScoreCalculator::isPassing((float) $this->total_score);
+        return ScoreCalculator::isPassing((float) $this->total_score, $this->student?->gender);
     }
 
     public function student(): BelongsTo

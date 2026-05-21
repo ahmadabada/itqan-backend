@@ -41,7 +41,7 @@ class Show extends Component
             // public result page and Excel exports already filter to the
             // canonical approved exam only.
             $exams = Exam::forMasterStudent($this->student->id)
-                ->with(['examiner', 'student:id,first_name,family_name,master_id'])
+                ->with(['examiner', 'student:id,first_name,family_name,master_id,gender'])
                 ->latest('started_at')
                 ->paginate(15);
         }

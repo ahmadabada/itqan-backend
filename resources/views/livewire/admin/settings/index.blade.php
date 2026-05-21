@@ -23,20 +23,31 @@
             <div class="bg-white rounded-xl border border-neutral-200 p-6 space-y-5">
                 <h3 class="text-base font-semibold text-neutral-900">إعدادات الاختبار</h3>
 
-                <flux:field>
-                    <flux:label>درجة الإجازة (من 100)</flux:label>
-                    <div class="flex items-center gap-3">
+                <p class="text-neutral-500 text-sm">درجة الإجازة (من 100) — يُعتمد الحد المناسب لجنس الطالب.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <flux:field>
+                        <flux:label>درجة الإجازة (ذكور)</flux:label>
                         <flux:input
-                            wire:model="passing_score"
+                            wire:model="passing_score_male"
                             type="number"
                             min="0"
                             max="100"
-                            class="w-32"
                         />
-                        <span class="text-neutral-400 text-sm">الطالب مجاز إذا حصل على هذه الدرجة أو أعلى</span>
-                    </div>
-                    <flux:error name="passing_score" />
-                </flux:field>
+                        <flux:error name="passing_score_male" />
+                    </flux:field>
+
+                    <flux:field>
+                        <flux:label>درجة الإجازة (إناث)</flux:label>
+                        <flux:input
+                            wire:model="passing_score_female"
+                            type="number"
+                            min="0"
+                            max="100"
+                        />
+                        <flux:error name="passing_score_female" />
+                    </flux:field>
+                </div>
             </div>
 
             {{-- Re-exam settings --}}

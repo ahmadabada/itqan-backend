@@ -11,7 +11,6 @@ use App\Models\ExamQuestion;
 use App\Models\ReexamPermit;
 use App\Models\Student;
 use App\Models\SuggestedStudent;
-use App\Models\SystemSetting;
 use App\Services\ArabicSearch;
 use App\Services\ExamQuestionPicker;
 use App\Services\ScoreCalculator;
@@ -541,12 +540,6 @@ class ExamSession extends Component
         return ScoreCalculator::totalScore($this->questions, $this->rulingsScore);
     }
 
-    #[Computed]
-    public function isPassing(): bool
-    {
-        return ScoreCalculator::isPassing($this->totalScore);
-    }
-
     // ──────────────────────────────────────────────────────
     // Render
     // ──────────────────────────────────────────────────────
@@ -556,7 +549,6 @@ class ExamSession extends Component
         return view('livewire.examiner.exam-session', [
             'examiner'        => Auth::user(),
             'groups'          => QuestionGroup::cases(),
-            'passingScore'    => (int) SystemSetting::get('passing_score', 60),
             'scorePerQ'       => (int) config('exam.score_per_question', 30),
             'errorDeduction'  => (float) config('exam.deductions.error', 2),
             'warnDeduction'   => (float) config('exam.deductions.warning', 1),

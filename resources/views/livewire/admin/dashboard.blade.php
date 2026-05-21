@@ -58,13 +58,13 @@
         {{-- Score Histogram --}}
         <div
             class="bg-white rounded-xl border border-neutral-200 p-4 sm:p-5"
-            x-data="scoreHistogram(@js($scoreDistribution), {{ (int) $passingScore }})"
+            x-data="scoreHistogram(@js($scoreDistribution), {{ (int) $passingScoreMale }}, {{ (int) $passingScoreFemale }})"
             x-init="render()"
             wire:ignore
         >
             <div class="flex items-center justify-between mb-3 sm:mb-4">
                 <h3 class="text-sm sm:text-base font-semibold text-neutral-900">توزيع درجات الطلاب</h3>
-                <span class="text-xs text-neutral-500">درجة النجاح: {{ $passingScore }}</span>
+                <span class="text-xs text-neutral-500">حد النجاح: ذكور {{ $passingScoreMale }} / إناث {{ $passingScoreFemale }}</span>
             </div>
             <div x-ref="chart"></div>
         </div>
@@ -106,23 +106,25 @@
     </div>
 
     <script>
-        function scoreHistogram(data, passingScore) {
+        function scoreHistogram(data, passingScoreMale, passingScoreFemale) {
             return {
                 render() {
-                    const passingBinIndex = Math.min(9, Math.floor(passingScore / 10));
-                    const colors = data.counts.map((_, i) =>
-                        i < passingBinIndex ? '#ef4444' : '#10b981'
-                    );
+                    const maleBinIndex   = Math.min(9, Math.floor(passingScoreMale / 10));
+                    const femaleBinIndex = Math.min(9, Math.floor(passingScoreFemale / 10));
 
                     const chart = new ApexCharts(this.$refs.chart, {
                         chart: {
                             type: 'bar',
+                            stacked: true,
                             height: 320,
                             fontFamily: 'inherit',
                             toolbar: { show: false },
                             animations: { speed: 400 },
                         },
-                        series: [{ name: 'عدد الطلاب', data: data.counts }],
+                        series: [
+                            { name: 'ذكور',  data: data.male },
+                            { name: 'إناث', data: data.female },
+                        ],
                         xaxis: {
                             categories: data.labels,
                             title: { text: 'الدرجة', style: { fontSize: '12px', fontWeight: 500 } },
@@ -136,24 +138,35 @@
                             bar: {
                                 borderRadius: 6,
                                 columnWidth: '65%',
-                                distributed: true,
                             },
                         },
-                        colors: colors,
-                        legend: { show: false },
+                        colors: ['#3b82f6', '#ec4899'],
+                        legend: { position: 'top', fontSize: '12px' },
                         dataLabels: { enabled: false },
                         grid: { borderColor: '#e5e7eb', strokeDashArray: 4 },
                         tooltip: { y: { formatter: (v) => `${v} طالب` } },
                         annotations: {
-                            xaxis: [{
-                                x: data.labels[passingBinIndex],
-                                borderColor: '#f59e0b',
-                                strokeDashArray: 4,
-                                label: {
-                                    text: `حد النجاح (${passingScore})`,
-                                    style: { background: '#f59e0b', color: '#fff', fontSize: '11px' },
+                            xaxis: [
+                                {
+                                    x: data.labels[maleBinIndex],
+                                    borderColor: '#1d4ed8',
+                                    strokeDashArray: 4,
+                                    label: {
+                                        text: `ذكور (${passingScoreMale})`,
+                                        style: { background: '#1d4ed8', color: '#fff', fontSize: '11px' },
+                                    },
                                 },
-                            }],
+                                {
+                                    x: data.labels[femaleBinIndex],
+                                    borderColor: '#be185d',
+                                    strokeDashArray: 4,
+                                    label: {
+                                        text: `إناث (${passingScoreFemale})`,
+                                        offsetY: 20,
+                                        style: { background: '#be185d', color: '#fff', fontSize: '11px' },
+                                    },
+                                },
+                            ],
                         },
                     });
                     chart.render();

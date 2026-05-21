@@ -554,7 +554,6 @@
         data-rq='@json($pickedQuestions)'
         data-cq="{{ $currentQuestion }}"
         data-rs="{{ $rulingsScore }}"
-        data-ps="{{ $passingScore }}"
         data-spq="{{ $scorePerQ }}"
         data-de="{{ $errorDeduction }}"
         data-dw="{{ $warnDeduction }}"
@@ -572,7 +571,6 @@
             currentQ: 1,
             subStep: 'question',                // 'question' | 'rulings' | 'summary'
             rulingsScore: 0,
-            passingScore: 60,
             spq: 30, de: 2, dw: 1, dc: 0.5,     // score-per-question + deductions
             saving: false,
             savedAt: null,
@@ -591,7 +589,6 @@
                 const sum = this.score(1) + this.score(2) + this.score(3);
                 return +(sum + Number(this.rulingsScore || 0)).toFixed(1);
             },
-            get isPassing() { return this.total >= this.passingScore },
             get rulingsValid() {
                 const v = Number(this.rulingsScore);
                 return !isNaN(v) && v >= 0 && v <= 10;
@@ -648,7 +645,6 @@
                 this.rq           = JSON.parse(d.rq || '{}');
                 this.currentQ     = +d.cq;
                 this.rulingsScore = +d.rs || 0;
-                this.passingScore = +d.ps;
                 this.spq = +d.spq; this.de = +d.de; this.dw = +d.dw; this.dc = +d.dc;
                 setInterval(() => this.doSync(), 20000);
             }

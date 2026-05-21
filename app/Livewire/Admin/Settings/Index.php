@@ -15,7 +15,8 @@ use Livewire\Component;
 #[Title('إعدادات النظام')]
 class Index extends Component
 {
-    public string $passing_score          = '';
+    public string $passing_score_male     = '';
+    public string $passing_score_female   = '';
     public bool   $results_query_enabled  = false;
     public string $reexam_permit_ttl_days = '';
     public string $excel_import_mode      = 'skip';
@@ -34,14 +35,18 @@ class Index extends Component
     public function saveSettings(): void
     {
         $this->validate([
-            'passing_score'          => ['required', 'integer', 'min:0', 'max:100'],
+            'passing_score_male'     => ['required', 'integer', 'min:0', 'max:100'],
+            'passing_score_female'   => ['required', 'integer', 'min:0', 'max:100'],
             'reexam_permit_ttl_days' => ['required', 'integer', 'min:1', 'max:365'],
             'excel_import_mode'      => ['required', 'in:skip,update'],
             'academy_name'           => ['required', 'string', 'max:100'],
         ], [
-            'passing_score.required'          => 'درجة الإجازة مطلوبة.',
-            'passing_score.min'               => 'درجة الإجازة لا تقل عن 0.',
-            'passing_score.max'               => 'درجة الإجازة لا تتجاوز 100.',
+            'passing_score_male.required'     => 'درجة الإجازة (ذكور) مطلوبة.',
+            'passing_score_male.min'          => 'درجة الإجازة (ذكور) لا تقل عن 0.',
+            'passing_score_male.max'          => 'درجة الإجازة (ذكور) لا تتجاوز 100.',
+            'passing_score_female.required'   => 'درجة الإجازة (إناث) مطلوبة.',
+            'passing_score_female.min'        => 'درجة الإجازة (إناث) لا تقل عن 0.',
+            'passing_score_female.max'        => 'درجة الإجازة (إناث) لا تتجاوز 100.',
             'reexam_permit_ttl_days.required' => 'مدة صلاحية الإذن مطلوبة.',
             'reexam_permit_ttl_days.min'      => 'مدة الصلاحية يوم على الأقل.',
             'academy_name.required'           => 'اسم الأكاديمية مطلوب.',
@@ -50,7 +55,8 @@ class Index extends Component
         $currentUser = Auth::user();
 
         $updates = [
-            'passing_score'          => (string) $this->passing_score,
+            'passing_score_male'     => (string) $this->passing_score_male,
+            'passing_score_female'   => (string) $this->passing_score_female,
             'results_query_enabled'  => $this->results_query_enabled ? 'true' : 'false',
             'reexam_permit_ttl_days' => (string) $this->reexam_permit_ttl_days,
             'excel_import_mode'      => $this->excel_import_mode,
@@ -92,7 +98,10 @@ class Index extends Component
 
     private function loadSettings(): void
     {
-        $this->passing_score          = (string) SystemSetting::get('passing_score', 60);
+        // Fall back to the legacy passing_score for callers that haven't yet split.
+        $legacyPassingScore = (string) SystemSetting::get('passing_score', 60);
+        $this->passing_score_male     = (string) SystemSetting::get('passing_score_male', $legacyPassingScore);
+        $this->passing_score_female   = (string) SystemSetting::get('passing_score_female', $legacyPassingScore);
         $this->results_query_enabled  = (bool)   SystemSetting::get('results_query_enabled', false);
         $this->reexam_permit_ttl_days = (string) SystemSetting::get('reexam_permit_ttl_days', 7);
         $this->excel_import_mode      = SystemSetting::get('excel_import_mode', 'skip');

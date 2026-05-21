@@ -38,7 +38,8 @@ class Dashboard extends Component
             'genderDistribution'   => $this->genderDistribution($authoritativeStudentIds),
             'zoneDistribution'     => $this->zoneDistribution($authoritativeStudentIds),
             'examTypeDistribution' => $this->examTypeDistribution(),
-            'passingScore'         => ScoreCalculator::passingScore(),
+            'passingScoreMale'     => ScoreCalculator::passingScore('male'),
+            'passingScoreFemale'   => ScoreCalculator::passingScore('female'),
         ]);
     }
 
@@ -62,19 +63,27 @@ class Dashboard extends Component
 
     private function scoreDistribution(): array
     {
-        $bins   = array_fill(0, 10, 0);
+        $male   = array_fill(0, 10, 0);
+        $female = array_fill(0, 10, 0);
         $labels = ['0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90-100'];
 
+        // Join so we can split per-bin counts by gender in a single pass.
         Exam::query()
-            ->where('is_authoritative', true)
-            ->whereNotNull('total_score')
-            ->pluck('total_score')
-            ->each(function ($score) use (&$bins) {
-                $idx = min(9, (int) ((float) $score / 10));
-                $bins[$idx]++;
+            ->join('students', 'students.id', '=', 'exams.student_id')
+            ->where('exams.is_authoritative', true)
+            ->whereNotNull('exams.total_score')
+            ->select('exams.total_score', 'students.gender')
+            ->get()
+            ->each(function ($row) use (&$male, &$female) {
+                $idx = min(9, (int) ((float) $row->total_score / 10));
+                if ($row->gender === 'male') {
+                    $male[$idx]++;
+                } elseif ($row->gender === 'female') {
+                    $female[$idx]++;
+                }
             });
 
-        return ['labels' => $labels, 'counts' => $bins];
+        return ['labels' => $labels, 'male' => $male, 'female' => $female];
     }
 
     private function genderDistribution($studentIds): array

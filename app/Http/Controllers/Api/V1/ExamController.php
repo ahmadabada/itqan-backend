@@ -190,7 +190,7 @@ class ExamController extends Controller
             ->where('is_approved', true)
             ->update(['is_approved' => false]);
 
-        return response()->json(['exam' => new ExamResource($exam->fresh())]);
+        return response()->json(['exam' => new ExamResource($exam->fresh()->load('student'))]);
     }
 
     // GET /exams/{exam}

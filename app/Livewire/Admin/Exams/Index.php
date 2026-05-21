@@ -50,7 +50,7 @@ class Index extends Component
     #[Url(as: 'max')]
     public string $maxScore = '';
 
-    // '' | passed | failed. Evaluated live against ScoreCalculator::passingScore()
+    // '' | passed | failed. Evaluated live against ScoreCalculator::passingScore($gender)
     // so a settings change immediately shifts the cohort, matching is_passed.
     #[Url(as: 'pass')]
     public string $passedFilter = '';
@@ -178,7 +178,8 @@ class Index extends Component
     // lockstep with the current filter state.
     private function filteredQuery(): Builder
     {
-        $passingScore = ScoreCalculator::passingScore();
+        $maleScore   = ScoreCalculator::passingScore('male');
+        $femaleScore = ScoreCalculator::passingScore('female');
 
         return Exam::query()
             ->when($this->search, fn($q) => $q->whereHas('student', fn($s) =>
@@ -197,8 +198,31 @@ class Index extends Component
             ->when($this->examTypeFilter, fn($q) => $q->where('exam_type', $this->examTypeFilter))
             ->when(is_numeric($this->minScore), fn($q) => $q->where('total_score', '>=', (float) $this->minScore))
             ->when(is_numeric($this->maxScore), fn($q) => $q->where('total_score', '<=', (float) $this->maxScore))
-            ->when($this->passedFilter === 'passed', fn($q) => $q->where('total_score', '>=', $passingScore))
-            ->when($this->passedFilter === 'failed', fn($q) => $q->whereNotNull('total_score')->where('total_score', '<', $passingScore));
+            ->when($this->passedFilter === 'passed', fn($q) =>
+                $q->where(fn($outer) => $outer
+                    ->orWhere(fn($g) => $g
+                        ->where('total_score', '>=', $maleScore)
+                        ->whereHas('student', fn($s) => $s->where('gender', 'male'))
+                    )
+                    ->orWhere(fn($g) => $g
+                        ->where('total_score', '>=', $femaleScore)
+                        ->whereHas('student', fn($s) => $s->where('gender', 'female'))
+                    )
+                )
+            )
+            ->when($this->passedFilter === 'failed', fn($q) =>
+                $q->whereNotNull('total_score')
+                  ->where(fn($outer) => $outer
+                    ->orWhere(fn($g) => $g
+                        ->where('total_score', '<', $maleScore)
+                        ->whereHas('student', fn($s) => $s->where('gender', 'male'))
+                    )
+                    ->orWhere(fn($g) => $g
+                        ->where('total_score', '<', $femaleScore)
+                        ->whereHas('student', fn($s) => $s->where('gender', 'female'))
+                    )
+                )
+            );
     }
 
     public function openExportModal(): void
@@ -218,7 +242,6 @@ class Index extends Component
             return null;
         }
 
-        $passingScore = ScoreCalculator::passingScore();
         $allowedSort  = ['created_at', 'started_at', 'completed_at', 'total_score', 'status'];
         $sortBy       = in_array($this->sortBy, $allowedSort) ? $this->sortBy : 'created_at';
 
@@ -259,7 +282,11 @@ class Index extends Component
         foreach ($rows as $exam) {
             $student  = $exam->student?->master ?? $exam->student;
             $score    = $exam->total_score !== null ? (float) $exam->total_score : null;
-            $isPassed = $score !== null ? ($score >= $passingScore) : null;
+            // Pull gender off the exam's own student (NOT $student which may be
+            // the merged master and could in theory differ — gender is per-row).
+            $isPassed = $score !== null
+                ? ScoreCalculator::isPassing($score, $exam->student?->gender)
+                : null;
 
             $sheet->setCellValue([1, $rowNum], $serial++);
             foreach ($orderedKeys as $i => $key) {
@@ -298,7 +325,9 @@ class Index extends Component
     {
         $allowedSort = ['created_at', 'started_at', 'completed_at', 'total_score', 'status'];
         $sortBy      = in_array($this->sortBy, $allowedSort) ? $this->sortBy : 'created_at';
-        $passingScore = ScoreCalculator::passingScore();
+
+        $maleScore   = ScoreCalculator::passingScore('male');
+        $femaleScore = ScoreCalculator::passingScore('female');
 
         $base = $this->filteredQuery();
 
@@ -309,9 +338,37 @@ class Index extends Component
 
         // Aggregates against the same filtered set (NOT against the paginated
         // 25 rows). Each clone resets the WHERE chain so the counts are exact.
+        // Passed/failed are gender-aware: a row counts as passed when its score
+        // clears the threshold for its own student's gender.
+        $passedExpr = function ($q) use ($maleScore, $femaleScore) {
+            $q->where(fn($outer) => $outer
+                ->orWhere(fn($g) => $g
+                    ->where('total_score', '>=', $maleScore)
+                    ->whereHas('student', fn($s) => $s->where('gender', 'male'))
+                )
+                ->orWhere(fn($g) => $g
+                    ->where('total_score', '>=', $femaleScore)
+                    ->whereHas('student', fn($s) => $s->where('gender', 'female'))
+                )
+            );
+        };
+        $failedExpr = function ($q) use ($maleScore, $femaleScore) {
+            $q->whereNotNull('total_score')
+              ->where(fn($outer) => $outer
+                ->orWhere(fn($g) => $g
+                    ->where('total_score', '<', $maleScore)
+                    ->whereHas('student', fn($s) => $s->where('gender', 'male'))
+                )
+                ->orWhere(fn($g) => $g
+                    ->where('total_score', '<', $femaleScore)
+                    ->whereHas('student', fn($s) => $s->where('gender', 'female'))
+                )
+            );
+        };
+
         $totalCount   = (clone $base)->count();
-        $passedCount  = (clone $base)->where('total_score', '>=', $passingScore)->count();
-        $failedCount  = (clone $base)->whereNotNull('total_score')->where('total_score', '<', $passingScore)->count();
+        $passedCount  = (clone $base)->tap($passedExpr)->count();
+        $failedCount  = (clone $base)->tap($failedExpr)->count();
         $avgScore     = (clone $base)->whereNotNull('total_score')->avg('total_score');
 
         $examiners = User::where('role', UserRole::Examiner)
@@ -319,15 +376,16 @@ class Index extends Component
             ->get(['id', 'first_name', 'second_name', 'third_name', 'family_name']);
 
         return view('livewire.admin.exams.index', [
-            'exams'        => $exams,
-            'examiners'    => $examiners,
-            'statuses'     => ExamStatus::cases(),
-            'examTypes'    => ExamType::cases(),
-            'totalCount'   => $totalCount,
-            'passedCount'  => $passedCount,
-            'failedCount'  => $failedCount,
-            'avgScore'     => $avgScore !== null ? (float) $avgScore : null,
-            'passingScore' => $passingScore,
+            'exams'              => $exams,
+            'examiners'          => $examiners,
+            'statuses'           => ExamStatus::cases(),
+            'examTypes'          => ExamType::cases(),
+            'totalCount'         => $totalCount,
+            'passedCount'        => $passedCount,
+            'failedCount'        => $failedCount,
+            'avgScore'           => $avgScore !== null ? (float) $avgScore : null,
+            'passingScoreMale'   => $maleScore,
+            'passingScoreFemale' => $femaleScore,
         ]);
     }
 }
