@@ -55,20 +55,38 @@
                 <div class="border border-neutral-200 rounded-xl overflow-hidden">
 
                     {{-- Pass/Fail banner --}}
+                    @php
+                        $isFemale = $student->gender?->value === 'female';
+                        $youPron  = $isFemale ? 'أنتِ' : 'أنت';
+                        $passWord = $isFemale ? 'مجازة' : 'مجاز';
+                        $kSuffix  = $isFemale ? 'كِ' : 'ك'; // ضمير المخاطب
+                    @endphp
                     @if($exam->is_passed)
                         <div class="py-8 px-5 text-center bg-success-50">
-                            <p class="text-sm text-success-700 mb-2">نبارك لك اجتيازك اختبارات التصفية ضمن مشروع</p>
+                            <p class="text-sm text-success-700 mb-2">نبارك ل{{ $kSuffix }} اجتياز{{ $kSuffix }} اختبارات التصفية ضمن مشروع</p>
                             <p class="text-base font-bold text-success-800 mb-4">صفوة الساردين على خطى أبي صلاح الدين</p>
-                            <p class="text-5xl font-black text-success-700">
-                                {{ number_format($exam->total_score, 1) }}
-                            </p>
-                            <p class="text-sm text-success-600 mt-0.5">من 100</p>
-                            <p class="text-sm font-medium text-success-700 mt-4">ننتظرك في السرد يوم عرفة</p>
+                            <div class="flex items-baseline justify-center gap-2">
+                                <span class="text-base font-medium text-success-700">النتيجة:</span>
+                                <span class="text-5xl font-black text-success-700 leading-none">
+                                    {{ number_format($exam->total_score, 1) }}
+                                </span>
+                                <span class="text-sm text-success-600">/ 100</span>
+                            </div>
+                            <p class="text-sm font-medium text-success-700 mt-4">ننتظر{{ $kSuffix }} في السرد يوم عرفة</p>
                         </div>
                     @else
                         <div class="py-8 px-5 text-center bg-danger-50">
-                            <p class="text-lg font-bold text-danger-700 mb-2">نعتذر منك أنت غير مجاز</p>
-                            <p class="text-sm text-danger-600">نتمنى لك التوفيق والسداد في المرات القادمة</p>
+                            <p class="text-lg font-bold text-danger-700 mb-2">نعتذر من{{ $kSuffix }} {{ $youPron }} غير {{ $passWord }}</p>
+                            @if($exam->total_score > 60)
+                                <div class="flex items-baseline justify-center gap-2 mt-3 mb-3">
+                                    <span class="text-base font-medium text-danger-700">النتيجة:</span>
+                                    <span class="text-4xl font-black text-danger-700 leading-none">
+                                        {{ number_format($exam->total_score, 1) }}
+                                    </span>
+                                    <span class="text-sm text-danger-600">/ 100</span>
+                                </div>
+                            @endif
+                            <p class="text-sm text-danger-600">نتمنى ل{{ $kSuffix }} التوفيق والسداد في المرات القادمة</p>
                         </div>
                     @endif
 
