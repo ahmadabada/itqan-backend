@@ -78,9 +78,11 @@ class ResultQuery extends Component
             // Approved per master before publishing results; until then, this
             // query deterministically picks the EARLIEST approved attempt —
             // oldest completed_at first, falling back to lowest id on ties.
+            // Eager-load student so the is_passed accessor (called several times
+            // in the blade) doesn't lazy-load gender on each call.
             $this->exam = Exam::forMasterStudent($this->student->id)
                 ->where('status', ExamStatus::Approved)
-                ->with('questions')
+                ->with(['questions', 'student:id,gender'])
                 ->oldest('completed_at')
                 ->oldest('id')
                 ->first();
