@@ -81,4 +81,5 @@ Route::middleware('auth')->prefix('examiner')->name('examiner.')->group(function
 
 // Public — no auth required (BR-QUERY-01)
 Route::get('results',           ResultQuery::class)->name('public.results');
-Route::get('results/{exam}/pdf', ResultPdfController::class)->name('public.result-pdf');
+// PDF download مخفي حالياً — اترك السطر معطّلاً ليُعاد تفعيله لاحقاً دون لمس الكنترولر/الـ view.
+// Route::get('results/{exam}/pdf', ResultPdfController::class)->name('public.result-pdf');

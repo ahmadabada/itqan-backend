@@ -55,20 +55,22 @@
                 <div class="border border-neutral-200 rounded-xl overflow-hidden">
 
                     {{-- Pass/Fail banner --}}
-                    <div class="py-6 text-center {{ $exam->is_passed ? 'bg-success-50' : 'bg-danger-50' }}">
-                        <p class="text-sm font-medium {{ $exam->is_passed ? 'text-success-600' : 'text-danger-500' }} mb-1">
-                            {{ $exam->exam_type->value === 'full_quran' ? 'القرآن الكريم كاملاً' : 'نصف القرآن الكريم' }}
-                        </p>
-                        <p class="text-5xl font-black {{ $exam->is_passed ? 'text-success-700' : 'text-danger-600' }}">
-                            {{ number_format($exam->total_score, 1) }}
-                        </p>
-                        <p class="text-sm {{ $exam->is_passed ? 'text-success-600' : 'text-danger-500' }} mt-0.5">من 100</p>
-                        <div class="mt-3">
-                            <span class="inline-block px-4 py-1 rounded-full text-sm font-bold {{ $exam->is_passed ? 'bg-success-100 text-success-700' : 'bg-danger-100 text-danger-600' }}">
-                                {{ $exam->is_passed ? '✓ مجاز' : '✗ غير مجاز' }}
-                            </span>
+                    @if($exam->is_passed)
+                        <div class="py-8 px-5 text-center bg-success-50">
+                            <p class="text-sm text-success-700 mb-2">نبارك لك اجتيازك اختبارات التصفية ضمن مشروع</p>
+                            <p class="text-base font-bold text-success-800 mb-4">صفوة الساردين على خطى أبي صلاح الدين</p>
+                            <p class="text-5xl font-black text-success-700">
+                                {{ number_format($exam->total_score, 1) }}
+                            </p>
+                            <p class="text-sm text-success-600 mt-0.5">من 100</p>
+                            <p class="text-sm font-medium text-success-700 mt-4">ننتظرك في السرد يوم عرفة</p>
                         </div>
-                    </div>
+                    @else
+                        <div class="py-8 px-5 text-center bg-danger-50">
+                            <p class="text-lg font-bold text-danger-700 mb-2">نعتذر منك أنت غير مجاز</p>
+                            <p class="text-sm text-danger-600">نتمنى لك التوفيق والسداد في المرات القادمة</p>
+                        </div>
+                    @endif
 
                     {{-- Details --}}
                     <div class="divide-y divide-neutral-100 text-sm">
@@ -86,7 +88,8 @@
                         </div>
                     </div>
 
-                    {{-- PDF download (BR-QUERY-04) --}}
+                    {{-- PDF download (BR-QUERY-04) — مخفي حالياً. الكنترولر والـ route ما زالا موجودين --}}
+                    {{--
                     <div class="p-5 border-t border-neutral-100">
                         <a
                             href="{{ route('public.result-pdf', $exam->id) }}"
@@ -96,6 +99,7 @@
                             تحميل وثيقة النتيجة (PDF)
                         </a>
                     </div>
+                    --}}
 
                 </div>
                 @endif {{-- end @if(! $exam) --}}
