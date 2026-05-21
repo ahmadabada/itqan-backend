@@ -34,11 +34,30 @@ class Dashboard extends Component
             'totalExams'         => Exam::count(),
             'approvedExams'      => Exam::where('status', ExamStatus::Approved)->count(),
 
-            'scoreDistribution'  => $this->scoreDistribution(),
-            'genderDistribution' => $this->genderDistribution($authoritativeStudentIds),
-            'zoneDistribution'   => $this->zoneDistribution($authoritativeStudentIds),
-            'passingScore'       => ScoreCalculator::passingScore(),
+            'scoreDistribution'    => $this->scoreDistribution(),
+            'genderDistribution'   => $this->genderDistribution($authoritativeStudentIds),
+            'zoneDistribution'     => $this->zoneDistribution($authoritativeStudentIds),
+            'examTypeDistribution' => $this->examTypeDistribution(),
+            'passingScore'         => ScoreCalculator::passingScore(),
         ]);
+    }
+
+    private function examTypeDistribution(): array
+    {
+        $rows = Exam::query()
+            ->where('is_authoritative', true)
+            ->whereNotNull('exam_type')
+            ->select('exam_type', DB::raw('count(*) as count'))
+            ->groupBy('exam_type')
+            ->get();
+
+        $labels = [];
+        $counts = [];
+        foreach ($rows as $row) {
+            $labels[] = $row->exam_type?->label() ?? '—';
+            $counts[] = (int) $row->count;
+        }
+        return ['labels' => $labels, 'counts' => $counts];
     }
 
     private function scoreDistribution(): array

@@ -69,7 +69,7 @@
             <div x-ref="chart"></div>
         </div>
 
-        <div class="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
             {{-- Gender Pie --}}
             <div
                 class="bg-white rounded-xl border border-neutral-200 p-4 sm:p-5"
@@ -89,6 +89,17 @@
                 wire:ignore
             >
                 <h3 class="text-sm sm:text-base font-semibold text-neutral-900 mb-3 sm:mb-4">توزيع الطلاب حسب المناطق</h3>
+                <div x-ref="chart"></div>
+            </div>
+
+            {{-- Exam Type Pie --}}
+            <div
+                class="bg-white rounded-xl border border-neutral-200 p-4 sm:p-5"
+                x-data="pieChart(@js($examTypeDistribution), ['#6366f1', '#14b8a6'])"
+                x-init="render()"
+                wire:ignore
+            >
+                <h3 class="text-sm sm:text-base font-semibold text-neutral-900 mb-3 sm:mb-4">توزيع الطلاب حسب نوع الاختبار</h3>
                 <div x-ref="chart"></div>
             </div>
         </div>
