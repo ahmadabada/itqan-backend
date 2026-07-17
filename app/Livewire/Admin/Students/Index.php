@@ -224,7 +224,9 @@ class Index extends Component
         try {
             $this->importResult = $service->import(
                 $this->importFile->getRealPath(),
-                Auth::id(),
+                // Auth::id() returns national_id here (User::getAuthIdentifierName),
+                // not the primary key — use ->id for the created_by_user_id FK.
+                Auth::user()->id,
                 $this->importFile->getClientOriginalName(),
             );
         } catch (\Throwable $e) {
@@ -234,7 +236,7 @@ class Index extends Component
 
         if (empty($this->importResult['failed_rows'])) {
             AuditLog::create([
-                'user_id'     => Auth::id(),
+                'user_id'     => Auth::user()->id,
                 'action'      => 'students_imported',
                 'target_type' => 'student',
                 'new_values'  => [
