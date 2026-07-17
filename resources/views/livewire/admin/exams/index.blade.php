@@ -50,16 +50,6 @@
             </div>
 
             <div>
-                <label class="block text-xs text-neutral-500 mb-1">نوع الاختبار</label>
-                <flux:select wire:model.live="examTypeFilter" size="sm">
-                    <flux:select.option value="">الكل</flux:select.option>
-                    @foreach($examTypes as $type)
-                        <flux:select.option value="{{ $type->value }}">{{ $type->label() }}</flux:select.option>
-                    @endforeach
-                </flux:select>
-            </div>
-
-            <div>
                 <label class="block text-xs text-neutral-500 mb-1">من درجة</label>
                 <flux:input type="number" min="0" max="100" step="0.5" wire:model.live.debounce.400ms="minScore" placeholder="0" size="sm" />
             </div>
@@ -80,7 +70,7 @@
 
         </div>
 
-        @if($search || $statusFilter !== 'approved' || $examinerFilter || $genderFilter || $examTypeFilter || $minScore !== '' || $maxScore !== '' || $passedFilter)
+        @if($search || $statusFilter !== 'approved' || $examinerFilter || $genderFilter || $minScore !== '' || $maxScore !== '' || $passedFilter)
             <div class="mt-3 pt-3 border-t border-neutral-100">
                 <button wire:click="clearFilters" class="text-xs text-neutral-500 hover:text-danger-600 transition-colors">
                     مسح الفلاتر
@@ -120,7 +110,7 @@
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الطالب</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">المختبر</th>
-                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">النوع</th>
+                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">الأجزاء</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">
                         <button wire:click="sort('total_score')" class="flex items-center gap-1 hover:text-neutral-900">
                             الدرجة
@@ -143,12 +133,7 @@
             </thead>
             <tbody class="divide-y divide-neutral-100">
                 @forelse($exams as $exam)
-                    @php
-                        // When the exam belongs to a merged student, surface the master's
-                        // identity here (the merged row should not have an independent UI).
-                        $effective = $exam->student?->master ?? $exam->student;
-                        $isFromMerge = (bool) $exam->student?->master_id;
-                    @endphp
+                    @php $effective = $exam->student; @endphp
                     <tr class="hover:bg-neutral-50 transition-colors">
                         <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration + ($exams->firstItem() ?? 1) - 1 }}</td>
                         <td class="px-4 py-3">
@@ -160,20 +145,15 @@
                                 @else
                                     —
                                 @endif
-                                @if($exam->status?->value === 'approved')
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">معتمد</span>
-                                @elseif($exam->status?->value === 'excluded')
+                                @if($exam->is_authoritative)
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">النتيجة المعتمدة</span>
+                                @endif
+                                @if($exam->status?->value === 'excluded')
                                     <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-500 font-medium">مستبعد</span>
                                 @endif
                             </div>
-                            <div class="text-xs text-neutral-400 font-mono mt-0.5 flex items-center gap-2">
+                            <div class="text-xs text-neutral-400 font-mono mt-0.5">
                                 <span>{{ $effective?->national_id ?? '—' }}</span>
-                                @if($isFromMerge)
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-500"
-                                          title="هذا الاختبار مأخوذ من سجل اندمج في #{{ $effective?->id }}">
-                                        اختبار سابق
-                                    </span>
-                                @endif
                             </div>
                             <div class="flex items-center gap-1.5 flex-wrap mt-1">
                                 @if($effective?->gender)
@@ -181,28 +161,18 @@
                                         {{ $effective->gender->label() }}
                                     </span>
                                 @endif
-                                @if($effective?->student_zone)
-                                    @php
-                                        $zones = [
-                                            'East Gaza' => 'شرق غزة',
-                                            'West Gaza' => 'غرب غزة',
-                                            'North Gaza' => 'شمال غزة',
-                                            'South Gaza' => 'جنوب غزة',
-                                        ];
-                                    @endphp
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600">
-                                        {{ $zones[$effective->student_zone] ?? $effective->student_zone }}
-                                    </span>
-                                @endif
-                                @if($effective?->is_recite_before)
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">
-                                        سبق له التسميع
+                                @if($effective?->halaqah)
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-primary-50 text-primary-700">
+                                        {{ $effective->halaqah->label() }}
                                     </span>
                                 @endif
                             </div>
                         </td>
                         <td class="px-4 py-3 text-neutral-700">{{ $exam->examiner?->fullName() ?? '—' }}</td>
-                        <td class="px-4 py-3 text-neutral-600 text-xs">{{ $exam->exam_type?->label() }}</td>
+                        <td class="px-4 py-3 text-neutral-600 text-xs whitespace-nowrap">
+                            {{ $exam->parts_count }} جزء
+                            <span class="text-neutral-400">({{ $exam->new_memorization_parts }} جديد)</span>
+                        </td>
                         <td class="px-4 py-3">
                             @if($exam->total_score !== null)
                                 <span class="font-bold {{ $exam->is_passed ? 'text-success-600' : 'text-danger-500' }}">

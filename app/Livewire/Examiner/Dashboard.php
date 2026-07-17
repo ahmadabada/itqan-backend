@@ -4,12 +4,12 @@ namespace App\Livewire\Examiner;
 
 use Livewire\Component;
 
-// Redirect to ExamSession — the examiner's main page
+// The examiner's landing page is now the shared students screen.
 class Dashboard extends Component
 {
     public function mount(): void
     {
-        $this->redirect(route('examiner.exam'), navigate: true);
+        $this->redirect(route('examiner.students'), navigate: true);
     }
 
     public function render()

@@ -4,8 +4,18 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-// Audit trail for admin student merges. pre_merge_snapshot stores the full prior state
-// so the merge can be undone (undone_at / undone_by_admin_id) without data loss.
+// RETIRED 2026-07-17, kept per "disable, don't delete".
+//
+// This backed the admin merge flow from the offline-first era, when each offline
+// exam created its own student row and duplicates were reconciled after the fact.
+// Students are now created only on the server with a UNIQUE national_id, so no
+// duplicates arise and nothing needs merging. The table stays for the historical
+// record; nothing writes to it.
+//
+// Reviving this needs more than re-enabling a route: MergeService and the
+// Admin\Merges components still read students.master_id / merged_at /
+// merged_by_admin_id, which no longer exist. Those columns would have to come
+// back first — see 2026_05_18_010001_add_soft_deletes_and_creator_to_students_table.
 return new class extends Migration
 {
     public function up(): void

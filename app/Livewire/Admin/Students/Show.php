@@ -20,7 +20,7 @@ class Show extends Component
 
     public function mount(Student $student): void
     {
-        $this->student = $student->load(['createdBy', 'mergedBy', 'master']);
+        $this->student = $student->load(['createdBy']);
     }
 
     public function setTab(string $tab): void
@@ -35,13 +35,10 @@ class Show extends Component
     {
         $exams = null;
         if ($this->activeTab === 'exams') {
-            // Show every attempt for this master — own attempts plus exams
-            // inherited from merged students. The admin needs the full history;
-            // approval is signalled per-row (is_approved badge), while the
-            // public result page and Excel exports already filter to the
-            // canonical approved exam only.
-            $exams = Exam::forMasterStudent($this->student->id)
-                ->with(['examiner', 'student:id,first_name,family_name,master_id,gender'])
+            // Every attempt this student has sat, newest first. The authoritative
+            // one is flagged per-row; the public result page shows only it.
+            $exams = Exam::where('student_id', $this->student->id)
+                ->with(['examiner', 'student:id,first_name,family_name,gender'])
                 ->latest('started_at')
                 ->paginate(15);
         }

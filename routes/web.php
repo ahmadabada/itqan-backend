@@ -6,9 +6,6 @@ use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\Devices\Index as AdminDevices;
 use App\Livewire\Admin\Exams\Index as AdminExamsIndex;
 use App\Livewire\Admin\Exams\Show as AdminExamShow;
-use App\Livewire\Admin\Merges\History as AdminMergesHistory;
-use App\Livewire\Admin\Merges\Index as AdminMerges;
-use App\Livewire\Admin\Merges\Show as AdminMergeShow;
 use App\Livewire\Admin\Permits\Index as AdminPermits;
 use App\Livewire\Admin\RecitationQuestions\Index as AdminRecitationQuestions;
 use App\Livewire\Admin\SuggestedStudents\Index as AdminSuggestedStudents;
@@ -19,7 +16,6 @@ use App\Livewire\Admin\Users\Index as AdminUsers;
 use App\Livewire\Admin\Users\Trashed as AdminUsersTrashed;
 use App\Livewire\Auth\Login;
 use App\Livewire\Examiner\Dashboard as ExaminerDashboard;
-use App\Livewire\Examiner\ExamSession;
 use App\Livewire\Examiner\MyExams as ExaminerMyExams;
 use App\Livewire\Public\ResultQuery;
 use App\Http\Controllers\ResultPdfController;
@@ -34,7 +30,7 @@ Route::get('/', function () {
 
     return redirect(
         Auth::user()->role === UserRole::Examiner
-            ? route('examiner.exam')
+            ? route('examiner.students')
             : route('admin.dashboard')
     );
 });
@@ -64,18 +60,21 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('permits',               AdminPermits::class)->name('permits');
     Route::get('exams',             AdminExamsIndex::class)->name('exams.index');
     Route::get('exams/{exam}',      AdminExamShow::class)->name('exams.show')->whereNumber('exam');
-    Route::get('merges',                       AdminMerges::class)->name('merges');
-    Route::get('merges/history',               AdminMergesHistory::class)->name('merges.history');
-    Route::get('merges/history/{operation}',   AdminMergeShow::class)->name('merges.show')->whereNumber('operation');
+    // Merge routes retired 2026-07-17 — students now carry a UNIQUE national_id and
+    // are only ever created server-side, so duplicates never arise. The components
+    // still exist but read students.master_id, which is gone; they would fatal if
+    // reached. Restore that column before re-registering these.
     Route::get('devices',           AdminDevices::class)->name('devices');
     Route::get('audit-logs',        AdminAuditLogs::class)->name('audit-logs');
     Route::get('settings',          AdminSettings::class)->name('settings');
 });
 
-// Examiner panel
+// Examiner panel. Exams are conducted on mobile now; the examiner's web role is
+// to keep the student roster current and review their own exams. The students
+// screen is the shared Admin\Students\Index, gender-scoped for examiners.
 Route::middleware('auth')->prefix('examiner')->name('examiner.')->group(function () {
     Route::get('dashboard', ExaminerDashboard::class)->name('dashboard');
-    Route::get('exam',      ExamSession::class)->name('exam');
+    Route::get('students',  AdminStudents::class)->name('students');
     Route::get('exams',     ExaminerMyExams::class)->name('exams');
 });
 

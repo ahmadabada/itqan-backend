@@ -39,12 +39,6 @@
                     <p class="text-neutral-500">لا يوجد طالب بهذا الرقم في قاعدة البيانات.</p>
                 </div>
             @else
-                @if($wasMerged)
-                    <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        رقم الهوية الذي أدخلته يخص سجلاً تم دمجه. النتيجة المعروضة من السجل الموحَّد.
-                    </div>
-                @endif
-
                 @if(! $exam)
                     <div class="bg-neutral-50 rounded-xl px-5 py-4 text-center">
                         <p class="font-medium text-neutral-900">{{ $student->fullName() }}</p>

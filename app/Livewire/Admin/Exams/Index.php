@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin\Exams;
 
 use App\Enums\ExamStatus;
-use App\Enums\ExamType;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\Exam;
@@ -41,9 +40,6 @@ class Index extends Component
     #[Url(as: 'gender')]
     public string $genderFilter = '';
 
-    #[Url(as: 'type')]
-    public string $examTypeFilter = '';
-
     #[Url(as: 'min')]
     public string $minScore = '';
 
@@ -70,10 +66,10 @@ class Index extends Component
     public array $exportColumns = [
         'student_name' => true,
         'national_id'  => true,
-        'zone'         => true,
+        'halaqah'      => true,
         'gender'       => true,
         'examiner'     => true,
-        'exam_type'    => true,
+        'parts'        => true,
         'score'        => true,
         'passed'       => true,
         'status'       => true,
@@ -84,10 +80,10 @@ class Index extends Component
     public const EXPORT_COLUMN_LABELS = [
         'student_name' => 'اسم الطالب',
         'national_id'  => 'رقم الهوية',
-        'zone'         => 'المنطقة',
+        'halaqah'      => 'الحلقة',
         'gender'       => 'الجنس',
         'examiner'     => 'المختبر',
-        'exam_type'    => 'النوع',
+        'parts'        => 'عدد الأجزاء',
         'score'        => 'الدرجة',
         'passed'       => 'مجاز؟',
         'status'       => 'الحالة',
@@ -104,7 +100,7 @@ class Index extends Component
 
     public function updating($name): void
     {
-        if (in_array($name, ['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'examTypeFilter', 'minScore', 'maxScore', 'passedFilter'])) {
+        if (in_array($name, ['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'minScore', 'maxScore', 'passedFilter'])) {
             $this->resetPage();
         }
     }
@@ -121,7 +117,7 @@ class Index extends Component
 
     public function clearFilters(): void
     {
-        $this->reset(['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'examTypeFilter', 'minScore', 'maxScore', 'passedFilter']);
+        $this->reset(['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'minScore', 'maxScore', 'passedFilter']);
         $this->resetPage();
     }
 
@@ -195,7 +191,6 @@ class Index extends Component
             ->when($this->genderFilter, fn($q) =>
                 $q->whereHas('student', fn($s) => $s->where('gender', $this->genderFilter))
             )
-            ->when($this->examTypeFilter, fn($q) => $q->where('exam_type', $this->examTypeFilter))
             ->when(is_numeric($this->minScore), fn($q) => $q->where('total_score', '>=', (float) $this->minScore))
             ->when(is_numeric($this->maxScore), fn($q) => $q->where('total_score', '<=', (float) $this->maxScore))
             ->when($this->passedFilter === 'passed', fn($q) =>
@@ -246,7 +241,7 @@ class Index extends Component
         $sortBy       = in_array($this->sortBy, $allowedSort) ? $this->sortBy : 'created_at';
 
         $rows = $this->filteredQuery()
-            ->with(['student.master', 'examiner'])
+            ->with(['student', 'examiner'])
             ->orderBy($sortBy, $this->sortDir)
             ->get();
 
@@ -270,22 +265,13 @@ class Index extends Component
         $sheet->getStyle("A1:{$lastCol}1")->getFont()->setBold(true);
         $sheet->getStyle("A1:{$lastCol}1")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        $zones = [
-            'East Gaza'  => 'شرق غزة',
-            'West Gaza'  => 'غرب غزة',
-            'North Gaza' => 'شمال غزة',
-            'South Gaza' => 'جنوب غزة',
-        ];
-
         $rowNum = 2;
         $serial = 1;
         foreach ($rows as $exam) {
-            $student  = $exam->student?->master ?? $exam->student;
+            $student  = $exam->student;
             $score    = $exam->total_score !== null ? (float) $exam->total_score : null;
-            // Pull gender off the exam's own student (NOT $student which may be
-            // the merged master and could in theory differ — gender is per-row).
             $isPassed = $score !== null
-                ? ScoreCalculator::isPassing($score, $exam->student?->gender)
+                ? ScoreCalculator::isPassing($score, $student?->gender)
                 : null;
 
             $sheet->setCellValue([1, $rowNum], $serial++);
@@ -293,10 +279,10 @@ class Index extends Component
                 $value = match ($key) {
                     'student_name' => $student?->fullName() ?? '',
                     'national_id'  => $student?->national_id ?? '',
-                    'zone'         => $zones[$student?->student_zone] ?? $student?->student_zone ?? '',
+                    'halaqah'      => $student?->halaqah?->label() ?? '',
                     'gender'       => $student?->gender?->label() ?? '',
                     'examiner'     => $exam->examiner?->fullName() ?? '',
-                    'exam_type'    => $exam->exam_type?->label() ?? '',
+                    'parts'        => $exam->parts_count . ' (' . $exam->new_memorization_parts . ' جديد)',
                     'score'        => $score,
                     'passed'       => $isPassed === null ? '' : ($isPassed ? 'نعم' : 'لا'),
                     'status'       => $exam->status?->label() ?? '',
@@ -332,7 +318,7 @@ class Index extends Component
         $base = $this->filteredQuery();
 
         $exams = (clone $base)
-            ->with(['student.master', 'examiner'])
+            ->with(['student', 'examiner'])
             ->orderBy($sortBy, $this->sortDir)
             ->paginate(25);
 
@@ -379,7 +365,6 @@ class Index extends Component
             'exams'              => $exams,
             'examiners'          => $examiners,
             'statuses'           => ExamStatus::cases(),
-            'examTypes'          => ExamType::cases(),
             'totalCount'         => $totalCount,
             'passedCount'        => $passedCount,
             'failedCount'        => $failedCount,

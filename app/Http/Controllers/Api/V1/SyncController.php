@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\SyncExamsRequest;
 use App\Models\DeviceCommand;
-use App\Models\Exam;
-use App\Models\ReexamPermit;
 use App\Models\Student;
 use App\Services\SyncService;
 use Illuminate\Http\JsonResponse;
@@ -17,8 +15,8 @@ class SyncController extends Controller
 {
     public function __construct(private readonly SyncService $syncService) {}
 
-    // POST /sync/exams — Flutter uploads completed offline exams. Each exam carries
-    // its own student object and client_request_id for idempotent retries.
+    // POST /sync/exams — Flutter uploads completed offline exams. Each exam names an
+    // existing student by id and carries a client_request_id for idempotent retries.
     public function syncExams(SyncExamsRequest $request): JsonResponse
     {
         $results = $this->syncService->processExams(
@@ -29,7 +27,7 @@ class SyncController extends Controller
         return response()->json(['results' => $results]);
     }
 
-    // GET /sync/status
+    // GET /sync/status — lets the device decide whether to re-pull the roster.
     public function status(Request $request): JsonResponse
     {
         return response()->json([
@@ -38,7 +36,6 @@ class SyncController extends Controller
             'pending_reviews_count' => 0,
             'server_time'           => now()->toISOString(),
             'students_last_updated' => Student::max('updated_at'),
-            'permits_last_updated'  => ReexamPermit::max('created_at'),
         ]);
     }
 

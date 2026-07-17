@@ -2,25 +2,31 @@
 
 namespace App\Livewire\Admin\Students;
 
+use App\Enums\Halaqah;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\Student;
 use App\Services\ArabicSearch;
+use App\Services\StudentImportService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
+// Shared by admins and examiners. Examiners are scoped to their own gender
+// throughout — search, listing, and the create/edit form — since they may only
+// deal with same-gender students. Admins see everyone.
 #[Layout('layouts.admin')]
 #[Title('الطلاب')]
 class Index extends Component
 {
+    use WithFileUploads;
     use WithPagination;
 
     public string $search        = '';
     public string $genderFilter  = '';
-    public bool   $showMerged    = false;
 
     // Create/edit modal
     public bool   $showFormModal  = false;
@@ -31,18 +37,26 @@ class Index extends Component
     public string $form_third_name   = '';
     public string $form_family_name  = '';
     public string $form_gender       = '';
-    public string $form_student_zone = '';
-    public bool   $form_is_recite_before = false;
+    public string $form_halaqah      = '';
+
+    // Import modal (admins only)
+    public bool $showImportModal = false;
+    public $importFile           = null;
+    /** @var array<string, mixed>|null */
+    public ?array $importResult  = null;
 
     // Delete
     public ?int $deleteStudentId = null;
 
-    public function mount(): void
+    private function isExaminer(): bool
     {
-        $user = Auth::user();
-        if ($user->role === UserRole::Examiner) {
-            $this->redirect(route('examiner.dashboard'));
-        }
+        return Auth::user()->role === UserRole::Examiner;
+    }
+
+    // The gender an examiner is locked to; null for admins (no restriction).
+    private function lockedGender(): ?string
+    {
+        return $this->isExaminer() ? Auth::user()->gender?->value : null;
     }
 
     public function updatingSearch(): void
@@ -51,11 +65,6 @@ class Index extends Component
     }
 
     public function updatingGenderFilter(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingShowMerged(): void
     {
         $this->resetPage();
     }
@@ -78,6 +87,13 @@ class Index extends Component
     public function openEditModal(int $studentId): void
     {
         $student = Student::findOrFail($studentId);
+
+        // An examiner must not edit a student outside their gender.
+        if ($this->lockedGender() && $student->gender?->value !== $this->lockedGender()) {
+            $this->dispatch('notify', type: 'danger', message: 'لا يمكنك تعديل طالب من جنس مختلف.');
+            return;
+        }
+
         $this->editStudentId     = $studentId;
         $this->form_national_id  = $student->national_id;
         $this->form_first_name   = $student->first_name;
@@ -85,8 +101,7 @@ class Index extends Component
         $this->form_third_name   = $student->third_name ?? '';
         $this->form_family_name  = $student->family_name;
         $this->form_gender       = $student->gender?->value ?? '';
-        $this->form_student_zone = $student->student_zone ?? '';
-        $this->form_is_recite_before = $student->is_recite_before;
+        $this->form_halaqah      = $student->halaqah?->value ?? '';
         $this->showFormModal     = true;
     }
 
@@ -98,11 +113,16 @@ class Index extends Component
     {
         $currentUser = Auth::user();
 
-        // National ID is optional, but if provided must be 9 digits and unique.
-        // Required at exam time (enforced in Examiner\ExamSession::startExam).
+        // national_id is now mandatory and UNIQUE — it is the identity every exam
+        // and the mobile roster keys on.
         $nationalIdRule = $this->editStudentId
-            ? ['nullable', 'digits:9', 'unique:students,national_id,' . $this->editStudentId]
-            : ['nullable', 'digits:9', 'unique:students,national_id'];
+            ? ['required', 'digits:9', 'unique:students,national_id,' . $this->editStudentId]
+            : ['required', 'digits:9', 'unique:students,national_id'];
+
+        // Examiners may only create/edit within their own gender.
+        $genderRule = $this->lockedGender()
+            ? ['required', 'in:' . $this->lockedGender()]
+            : ['required', 'in:male,female'];
 
         $this->validate([
             'form_national_id' => $nationalIdRule,
@@ -110,27 +130,28 @@ class Index extends Component
             'form_second_name' => ['nullable', 'string', 'max:50'],
             'form_third_name'  => ['nullable', 'string', 'max:50'],
             'form_family_name' => ['required', 'string', 'max:50'],
-            'form_gender'      => ['required', 'in:male,female'],
-            'form_student_zone'=> ['required', 'in:East Gaza,West Gaza,North Gaza,South Gaza'],
-            'form_is_recite_before' => ['boolean'],
+            'form_gender'      => $genderRule,
+            'form_halaqah'     => ['required', 'in:' . implode(',', array_column(Halaqah::cases(), 'value'))],
         ], [
+            'form_national_id.required' => 'رقم الهوية مطلوب.',
             'form_national_id.digits'   => 'رقم الهوية يجب أن يكون 9 أرقام.',
             'form_national_id.unique'   => 'رقم الهوية مسجّل مسبقاً.',
             'form_first_name.required'  => 'الاسم الأول مطلوب.',
             'form_family_name.required' => 'اسم العائلة مطلوب.',
             'form_gender.required'      => 'الجنس مطلوب.',
-            'form_student_zone.required'=> 'منطقة الطالب مطلوبة.',
+            'form_gender.in'            => 'لا يمكنك إضافة طالب من جنس مختلف.',
+            'form_halaqah.required'     => 'الحلقة مطلوبة.',
+            'form_halaqah.in'           => 'الحلقة المحددة غير صالحة.',
         ]);
 
         $data = [
-            'national_id'  => $this->form_national_id ?: null,
-            'first_name'   => $this->form_first_name,
-            'second_name'  => $this->form_second_name ?: null,
-            'third_name'   => $this->form_third_name ?: null,
-            'family_name'  => $this->form_family_name,
-            'gender'       => $this->form_gender ?: null,
-            'student_zone' => $this->form_student_zone ?: null,
-            'is_recite_before' => $this->form_is_recite_before,
+            'national_id' => $this->form_national_id,
+            'first_name'  => $this->form_first_name,
+            'second_name' => $this->form_second_name ?: null,
+            'third_name'  => $this->form_third_name ?: null,
+            'family_name' => $this->form_family_name,
+            'gender'      => $this->form_gender,
+            'halaqah'     => $this->form_halaqah,
         ];
 
         if ($this->editStudentId) {
@@ -164,6 +185,72 @@ class Index extends Component
     }
 
     // ──────────────────────────────────────────
+    // Excel import (admins only) → students
+    // ──────────────────────────────────────────
+
+    public function openImportModal(): void
+    {
+        if ($this->isExaminer()) {
+            abort(403);
+        }
+        $this->reset(['importFile', 'importResult']);
+        $this->resetValidation();
+        $this->showImportModal = true;
+    }
+
+    public function downloadTemplate(StudentImportService $service)
+    {
+        if ($this->isExaminer()) {
+            abort(403);
+        }
+        return response()->download($service->buildTemplate(), 'students-template.xlsx')
+            ->deleteFileAfterSend();
+    }
+
+    public function runImport(StudentImportService $service): void
+    {
+        if ($this->isExaminer()) {
+            abort(403);
+        }
+
+        $this->validate([
+            'importFile' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120'],
+        ], [
+            'importFile.required' => 'اختر ملفاً.',
+            'importFile.mimes'    => 'الملف يجب أن يكون xlsx أو xls أو csv.',
+            'importFile.max'      => 'حجم الملف يجب ألا يتجاوز 5 ميجابايت.',
+        ]);
+
+        try {
+            $this->importResult = $service->import(
+                $this->importFile->getRealPath(),
+                Auth::id(),
+                $this->importFile->getClientOriginalName(),
+            );
+        } catch (\Throwable $e) {
+            $this->addError('importFile', $e->getMessage());
+            return;
+        }
+
+        if (empty($this->importResult['failed_rows'])) {
+            AuditLog::create([
+                'user_id'     => Auth::id(),
+                'action'      => 'students_imported',
+                'target_type' => 'student',
+                'new_values'  => [
+                    'inserted' => $this->importResult['inserted'],
+                    'updated'  => $this->importResult['updated'],
+                ],
+            ]);
+            $this->dispatch('notify', type: 'success', message:
+                "تم الاستيراد: {$this->importResult['inserted']} جديد، {$this->importResult['updated']} محدّث.");
+        } else {
+            $this->dispatch('notify', type: 'danger', message:
+                'الملف يحتوي أخطاءً — لم يُحفظ أي صف. راجع التفاصيل.');
+        }
+    }
+
+    // ──────────────────────────────────────────
     // Delete
     // ──────────────────────────────────────────
 
@@ -175,6 +262,12 @@ class Index extends Component
     public function deleteStudent(): void
     {
         $student = Student::findOrFail($this->deleteStudentId);
+
+        if ($this->lockedGender() && $student->gender?->value !== $this->lockedGender()) {
+            $this->dispatch('notify', type: 'danger', message: 'لا يمكنك حذف طالب من جنس مختلف.');
+            $this->deleteStudentId = null;
+            return;
+        }
 
         AuditLog::create([
             'user_id'     => Auth::user()->id,
@@ -195,23 +288,27 @@ class Index extends Component
 
     public function render()
     {
-        // Hide merged records by default — they belong to the merge UI only.
-        // Why: after admin merge, the duplicate row stays in the DB for audit/undo
-        // but should not appear in any "list of students" UI.
+        $lockedGender = $this->lockedGender();
+
         $students = Student::query()
-            ->unless($this->showMerged, fn($q) => $q->whereNull('master_id'))
+            // Examiners see only their own gender; the filter chip is theirs to ignore.
+            ->when($lockedGender, fn($q) => $q->where('gender', $lockedGender))
             ->when($this->search, fn($q) => ArabicSearch::applyTo(
                 $q,
                 $this->search,
                 ['first_name', 'second_name', 'third_name', 'family_name'],
                 ['national_id'],
             ))
-            ->when($this->genderFilter, fn($q) => $q->where('gender', $this->genderFilter))
+            ->when(! $lockedGender && $this->genderFilter, fn($q) => $q->where('gender', $this->genderFilter))
             ->orderBy('family_name')
             ->orderBy('first_name')
             ->paginate(25);
 
-        return view('livewire.admin.students.index', ['students' => $students]);
+        return view('livewire.admin.students.index', [
+            'students'     => $students,
+            'halaqat'      => Halaqah::cases(),
+            'lockedGender' => $lockedGender,
+        ])->layout($this->isExaminer() ? 'layouts.examiner' : 'layouts.admin');
     }
 
     private function resetStudentForm(): void
@@ -222,9 +319,9 @@ class Index extends Component
         $this->form_second_name = '';
         $this->form_third_name  = '';
         $this->form_family_name = '';
-        $this->form_gender      = '';
-        $this->form_student_zone = '';
-        $this->form_is_recite_before = false;
+        // Pre-lock an examiner's gender so the field is correct without a choice.
+        $this->form_gender      = $this->lockedGender() ?? '';
+        $this->form_halaqah     = '';
         $this->resetValidation();
     }
 }

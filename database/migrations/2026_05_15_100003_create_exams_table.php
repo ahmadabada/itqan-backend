@@ -17,6 +17,12 @@ return new class extends Migration
             $table->foreignId('examiner_id')->constrained('users')->restrictOnDelete();
             $table->string('exam_type')->default(ExamType::FullQuran->value);
             $table->tinyInteger('attempt_number')->unsigned()->default(1);
+
+            // Scope of the exam, entered by the examiner when it starts.
+            // Documentary only — neither value feeds the score or pass/fail.
+            $table->tinyInteger('parts_count')->unsigned();
+            $table->tinyInteger('new_memorization_parts')->unsigned();
+
             $table->decimal('rulings_score', 4, 2)->nullable();
             $table->decimal('total_score', 5, 2)->nullable();
             $table->boolean('is_passed')->nullable();
@@ -25,7 +31,6 @@ return new class extends Migration
             $table->string('source')->default(ExamSource::Web->value);
             $table->string('device_uuid', 64)->nullable();
             $table->foreignId('reexam_permit_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('conflict_reason', 50)->nullable();
             $table->timestamp('started_at');
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('synced_at')->nullable();

@@ -23,45 +23,53 @@
 
         <div class="px-6 py-5 border-b border-neutral-200 flex items-start justify-between flex-wrap gap-3">
             <div>
-                <div class="flex items-center gap-3 mb-1">
+                <div class="flex items-center gap-3 mb-1 flex-wrap">
                     <h1 class="text-xl font-bold text-neutral-900">اختبار #{{ $exam->id }}</h1>
                     <span class="text-xs px-2 py-0.5 rounded-full {{ $sc['bg'] }} {{ $sc['text'] }} border {{ $sc['border'] }}">
                         {{ $exam->status?->label() }}
                     </span>
-                    {{-- BR-REEX-08: an "approved" status with is_approved=false means a newer attempt has replaced it --}}
-                    @if($exam->status?->value === 'approved' && ! $exam->is_approved)
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">محاولة سابقة</span>
+                    @if($exam->is_authoritative)
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">النتيجة المعتمدة</span>
+                    @endif
+                    @if($exam->authoritative_decision_by)
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200" title="ثبّتها الأدمن يدوياً">مثبّتة يدوياً</span>
                     @endif
                 </div>
                 <p class="text-sm text-neutral-500">
-                    {{ $exam->exam_type?->label() }} ·
+                    {{ $exam->parts_count }} جزء ({{ $exam->new_memorization_parts }} حفظ جديد) ·
                     المحاولة رقم {{ $exam->attempt_number }} ·
                     {{ $exam->source?->value === 'web' ? 'من المتصفح' : 'من التطبيق' }}
                 </p>
             </div>
 
             <div class="flex items-start gap-4 flex-wrap">
-                {{-- Admin override actions. Only one button is meaningful at a time (the opposite of current state).
-                     In-progress exams get no button — the lifecycle requires completion first. --}}
-                @if($exam->status?->value === 'approved')
-                    <flux:button
-                        variant="danger"
-                        size="sm"
-                        wire:click="exclude"
-                        wire:confirm="استبعاد هذا الاختبار؟"
-                    >
-                        استبعاد الاختبار
-                    </flux:button>
-                @elseif($exam->status?->value === 'excluded')
-                    <flux:button
-                        variant="primary"
-                        size="sm"
-                        wire:click="approve"
-                        wire:confirm="اعتماد هذا الاختبار؟"
-                    >
-                        اعتماد الاختبار
-                    </flux:button>
-                @endif
+                {{-- Admin override actions. The counted result normally follows
+                     newest-wins; an admin can pin a specific approved exam or set
+                     one aside. In-progress exams get no button. --}}
+                <div class="flex items-center gap-2 flex-wrap">
+                    @if($exam->status?->value === 'approved')
+                        @if($exam->authoritative_decision_by)
+                            <flux:button variant="outline" size="sm" wire:click="unpin"
+                                wire:confirm="إلغاء التثبيت والعودة لاعتماد الأحدث تلقائياً؟">
+                                إلغاء التثبيت
+                            </flux:button>
+                        @elseif(! $exam->is_authoritative)
+                            <flux:button variant="primary" size="sm" wire:click="pin"
+                                wire:confirm="تثبيت هذا الاختبار كنتيجة معتمدة للطالب؟">
+                                تثبيت كنتيجة معتمدة
+                            </flux:button>
+                        @endif
+                        <flux:button variant="danger" size="sm" wire:click="exclude"
+                            wire:confirm="استبعاد هذا الاختبار؟">
+                            استبعاد الاختبار
+                        </flux:button>
+                    @elseif($exam->status?->value === 'excluded')
+                        <flux:button variant="primary" size="sm" wire:click="approve"
+                            wire:confirm="اعتماد هذا الاختبار؟">
+                            اعتماد الاختبار
+                        </flux:button>
+                    @endif
+                </div>
 
                 @if($exam->total_score !== null)
                     <div class="text-end">
@@ -89,22 +97,9 @@
                             {{ $exam->student->gender->label() }}
                         </span>
                     @endif
-                    @if($exam->student?->student_zone)
-                        @php
-                            $zones = [
-                                'East Gaza' => 'شرق غزة',
-                                'West Gaza' => 'غرب غزة',
-                                'North Gaza' => 'شمال غزة',
-                                'South Gaza' => 'جنوب غزة',
-                            ];
-                        @endphp
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">
-                            منطقة: {{ $zones[$exam->student->student_zone] ?? $exam->student->student_zone }}
-                        </span>
-                    @endif
-                    @if($exam->student?->is_recite_before)
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
-                            سبق له التسميع
+                    @if($exam->student?->halaqah)
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200">
+                            حلقة: {{ $exam->student->halaqah->label() }}
                         </span>
                     @endif
                 </div>
@@ -147,25 +142,10 @@
 
         <div class="divide-y divide-neutral-100">
             @foreach($exam->questions as $q)
-                @php($rq = $q->recitationQuestion)
                 <div class="px-6 py-4">
                     <div class="flex items-start justify-between mb-2 gap-3">
                         <div class="flex items-center gap-2 flex-wrap">
                             <h3 class="font-semibold text-neutral-900">السؤال {{ $q->question_number }}</h3>
-                            @if($rq?->group_number)
-                                <span class="text-xs px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 border border-primary-200"
-                                      title="{{ $rq->group_number->fullLabel() }}">
-                                    {{ $rq->group_number->shortLabel() }}
-                                </span>
-                            @endif
-                            @if($rq)
-                                <span class="text-xs text-neutral-500">
-                                    سؤال #{{ $rq->question_number }} ·
-                                    {{ $rq->startSurahName() }} {{ $rq->start_ayah }}
-                                    ← {{ $rq->endSurahName() }} {{ $rq->end_ayah }}
-                                    <span class="text-neutral-400">(ص {{ $rq->start_page }}–{{ $rq->end_page }})</span>
-                                </span>
-                            @endif
                         </div>
                         <p class="text-2xl font-black {{ $q->final_score >= 25 ? 'text-success-600' : ($q->final_score >= 15 ? 'text-warning-600' : 'text-danger-500') }} whitespace-nowrap">
                             {{ number_format($q->final_score, 1) }}
@@ -215,22 +195,5 @@
         </div>
     </div>
 
-    {{-- Conflict info if any --}}
-    @if($exam->conflict_reason)
-        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-            <p class="text-sm font-bold text-amber-800 mb-1">سبب التعارض</p>
-            <p class="text-sm text-amber-700">{{ $exam->conflict_reason }}</p>
-        </div>
-    @endif
-
-    {{-- Re-exam permit info --}}
-    @if($exam->reexamPermit)
-        <div class="bg-white rounded-2xl border border-neutral-200 p-5 mb-6">
-            <p class="text-sm font-bold text-neutral-700 mb-2">إذن إعادة الاختبار</p>
-            <p class="text-xs text-neutral-500">
-                الرمز: <span class="font-mono">{{ $exam->reexamPermit->permit_code }}</span>
-            </p>
-        </div>
-    @endif
 
 </div>

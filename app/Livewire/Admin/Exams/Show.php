@@ -6,6 +6,7 @@ use App\Enums\ExamStatus;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\Exam;
+use App\Services\AuthoritativeExamResolver;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -28,8 +29,7 @@ class Show extends Component
         $this->exam = $exam->load([
             'student',
             'examiner',
-            'questions.recitationQuestion',
-            'reexamPermit',
+            'questions',
         ]);
     }
 
@@ -65,11 +65,55 @@ class Show extends Component
             'new_values'  => ['status' => $newStatus->value],
         ]);
 
+        // Excluding the counted exam must promote the next one; approving another
+        // may change which is newest-and-approved. Let the resolver settle it.
+        app(AuthoritativeExamResolver::class)->refreshFor($this->exam->student_id);
+        $this->exam->refresh();
+
         $this->dispatch(
             'notify',
             type: 'success',
             message: $newStatus === ExamStatus::Approved ? 'تم اعتماد الاختبار.' : 'تم استبعاد الاختبار.',
         );
+    }
+
+    // Pin this exam as the student's counted result, overriding newest-wins.
+    public function pin(AuthoritativeExamResolver $resolver): void
+    {
+        if ($this->exam->status !== ExamStatus::Approved) {
+            $this->dispatch('notify', type: 'error', message: 'لا يمكن تثبيت اختبار غير معتمد.');
+            return;
+        }
+
+        $resolver->pin($this->exam, Auth::user()->id);
+
+        AuditLog::create([
+            'user_id'     => Auth::user()->id,
+            'action'      => 'exam_pinned_authoritative',
+            'target_type' => 'exam',
+            'target_id'   => $this->exam->id,
+            'new_values'  => ['is_authoritative' => true],
+        ]);
+
+        $this->exam->refresh();
+        $this->dispatch('notify', type: 'success', message: 'تم تثبيت هذا الاختبار كنتيجة معتمدة.');
+    }
+
+    // Drop the manual pin and fall back to newest-wins.
+    public function unpin(AuthoritativeExamResolver $resolver): void
+    {
+        $resolver->unpin($this->exam);
+
+        AuditLog::create([
+            'user_id'     => Auth::user()->id,
+            'action'      => 'exam_unpinned_authoritative',
+            'target_type' => 'exam',
+            'target_id'   => $this->exam->id,
+            'old_values'  => ['is_authoritative' => true],
+        ]);
+
+        $this->exam->refresh();
+        $this->dispatch('notify', type: 'success', message: 'تم إلغاء التثبيت — تُعتمد النتيجة الأحدث تلقائياً.');
     }
 
     public function render()

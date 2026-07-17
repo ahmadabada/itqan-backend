@@ -72,8 +72,8 @@
             <td>{{ $student->national_id }}</td>
         </tr>
         <tr>
-            <td>نوع الاختبار</td>
-            <td>{{ $exam->exam_type->value === 'full_quran' ? 'القرآن الكريم كاملاً' : 'نصف القرآن الكريم' }}</td>
+            <td>عدد الأجزاء</td>
+            <td>{{ $exam->parts_count }} جزء ({{ $exam->new_memorization_parts }} حفظ جديد)</td>
         </tr>
         <tr>
             <td>تاريخ الاختبار</td>

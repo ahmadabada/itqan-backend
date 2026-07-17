@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+// RETIRED 2026-07-17 — see MergeService. The merge_operations table still exists
+// and holds the historical record, but nothing writes to it any more.
 #[Fillable([
     'master_student_id', 'merged_student_ids', 'authoritative_exam_id',
     'pre_merge_snapshot', 'performed_by_admin_id', 'performed_at', 'notes',

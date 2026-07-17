@@ -26,7 +26,7 @@
 
             <div class="flex items-center gap-8">
                 {{-- Brand --}}
-                <a href="{{ route('examiner.exam') }}" wire:navigate class="flex items-center gap-2">
+                <a href="{{ route('examiner.students') }}" wire:navigate class="flex items-center gap-2">
                     <div class="w-9 h-9 rounded-xl bg-primary-500 flex items-center justify-center text-white font-black text-sm">إ</div>
                     <div class="leading-tight">
                         <p class="text-sm font-bold text-neutral-900">أكاديمية الإتقان</p>
@@ -38,8 +38,8 @@
                 <nav class="hidden md:flex items-center gap-1">
                     @php
                         $navItems = [
-                            ['route' => 'examiner.exam',      'label' => 'جلسة اختبار', 'pattern' => 'examiner/exam'],
-                            ['route' => 'examiner.exams',     'label' => 'اختباراتي',   'pattern' => 'examiner/exams*'],
+                            ['route' => 'examiner.students',  'label' => 'الطلاب',    'pattern' => 'examiner/students*'],
+                            ['route' => 'examiner.exams',     'label' => 'اختباراتي', 'pattern' => 'examiner/exams*'],
                         ];
                     @endphp
                     @foreach($navItems as $item)

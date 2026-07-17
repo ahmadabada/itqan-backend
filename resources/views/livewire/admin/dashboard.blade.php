@@ -81,25 +81,14 @@
                 <div x-ref="chart"></div>
             </div>
 
-            {{-- Zone Pie --}}
+            {{-- Halaqah Pie --}}
             <div
                 class="bg-white rounded-xl border border-neutral-200 p-4 sm:p-5"
-                x-data="pieChart(@js($zoneDistribution), ['#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'])"
+                x-data="pieChart(@js($halaqahDistribution), ['#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#94a3b8'])"
                 x-init="render()"
                 wire:ignore
             >
-                <h3 class="text-sm sm:text-base font-semibold text-neutral-900 mb-3 sm:mb-4">توزيع الطلاب حسب المناطق</h3>
-                <div x-ref="chart"></div>
-            </div>
-
-            {{-- Exam Type Pie --}}
-            <div
-                class="bg-white rounded-xl border border-neutral-200 p-4 sm:p-5"
-                x-data="pieChart(@js($examTypeDistribution), ['#6366f1', '#14b8a6'])"
-                x-init="render()"
-                wire:ignore
-            >
-                <h3 class="text-sm sm:text-base font-semibold text-neutral-900 mb-3 sm:mb-4">توزيع الطلاب حسب نوع الاختبار</h3>
+                <h3 class="text-sm sm:text-base font-semibold text-neutral-900 mb-3 sm:mb-4">توزيع الطلاب حسب الحلقة</h3>
                 <div x-ref="chart"></div>
             </div>
         </div>

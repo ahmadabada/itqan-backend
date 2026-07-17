@@ -5,7 +5,9 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 // BR-SYNC-*: client_request_id (UUID) gives the mobile a stable key for safe retries.
-// is_authoritative flags the exam chosen by the admin after merging duplicate students.
+// A student may sit many exams; is_authoritative marks the one that counts. The newest
+// exam claims it automatically, unless an admin pins an older one — authoritative_decision_by
+// and authoritative_decision_at record that a human overrode the default.
 return new class extends Migration
 {
     public function up(): void

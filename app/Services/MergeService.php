@@ -10,7 +10,18 @@ use App\Models\Student;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
-// Admin-driven student merge:
+// RETIRED 2026-07-17 — NOT WIRED UP AND NOT RUNNABLE.
+//
+// Students are now created only on the server with a UNIQUE national_id, so
+// duplicates never arise and there is nothing to merge. The admin/merges routes
+// are unregistered; nothing calls this class.
+//
+// This is dead code, not dormant code: every method below touches
+// students.master_id / merged_at / merged_by_admin_id, columns that no longer
+// exist. Calling any of them throws. Reviving the flow means restoring those
+// columns first — do not simply re-register the routes.
+//
+// Original design (kept for context):
 //  • Mobile uploads create record-per-exam, so duplicates by national_id are
 //    expected. After the exam period the admin selects duplicates and merges
 //    them into a single "master" student.

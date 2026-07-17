@@ -6,9 +6,9 @@
             <h2 class="text-2xl font-bold text-neutral-900">اختباراتي</h2>
             <p class="text-neutral-500 text-sm mt-0.5">{{ $exams->total() }} اختبار قمت بتنفيذه</p>
         </div>
-        <a href="{{ route('examiner.exam') }}" wire:navigate
+        <a href="{{ route('examiner.students') }}" wire:navigate
            class="px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600 transition-colors">
-            + اختبار جديد
+            الطلاب
         </a>
     </div>
 
@@ -92,7 +92,7 @@
                     </div>
                     <p class="text-xs text-neutral-500 mt-1 font-mono">
                         {{ $exam->student?->national_id }} ·
-                        {{ $exam->exam_type?->label() }} ·
+                        {{ $exam->parts_count }} جزء ·
                         {{ $exam->started_at?->format('Y-m-d g:i A') }}
                     </p>
                 </div>

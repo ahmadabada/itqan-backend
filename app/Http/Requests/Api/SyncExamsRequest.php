@@ -4,9 +4,9 @@ namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-// Record-per-exam payload: every offline exam carries its own student. The server
-// never looks up an existing student by national_id — duplicates are intentional and
-// the admin merges them after the exam period via the merge UI.
+// The device uploads exams against students that already exist on the server —
+// it carries a downloaded roster and sends student_id, never student details.
+// A student may sit many exams, so nothing here guards against repeats.
 class SyncExamsRequest extends FormRequest
 {
     public function authorize(): bool
@@ -17,37 +17,34 @@ class SyncExamsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'exams'                                       => ['required', 'array', 'min:1'],
-            'exams.*.client_request_id'                   => ['required', 'string', 'size:36'],
+            'exams'                                   => ['required', 'array', 'min:1'],
+            'exams.*.client_request_id'               => ['required', 'string', 'size:36'],
+            'exams.*.student_id'                      => ['required', 'integer', 'exists:students,id'],
 
-            // The student that took this exam — one-to-one per offline submission.
-            'exams.*.student'                             => ['required', 'array'],
-            'exams.*.student.client_request_id'           => ['required', 'string', 'size:36'],
-            'exams.*.student.national_id'                 => ['required', 'string', 'max:20'],
-            'exams.*.student.first_name'                  => ['required', 'string', 'max:50'],
-            'exams.*.student.second_name'                 => ['nullable', 'string', 'max:50'],
-            'exams.*.student.third_name'                  => ['nullable', 'string', 'max:50'],
-            'exams.*.student.family_name'                 => ['required', 'string', 'max:50'],
-            'exams.*.student.gender'                      => ['required', 'in:male,female'],
-            'exams.*.student.is_recite_before'            => ['required', 'boolean'],
-            'exams.*.student.student_zone'                => ['required', 'in:East Gaza,West Gaza,North Gaza,South Gaza'],
+            // Scope of the exam — documentary, but the examiner must state it.
+            'exams.*.parts_count'                     => ['required', 'integer', 'between:1,30'],
+            'exams.*.new_memorization_parts'          => ['required', 'integer', 'min:0', 'lte:exams.*.parts_count'],
 
-            'exams.*.exam_type'                           => ['required', 'in:full_quran,half_quran'],
-            'exams.*.selected_groups'                     => ['nullable', 'array'],
-            'exams.*.selected_groups.*'                   => ['integer', 'between:1,6'],
-            'exams.*.rulings_score'                       => ['required', 'numeric', 'min:0', 'max:10'],
-            'exams.*.total_score'                         => ['required', 'numeric', 'min:0', 'max:100'],
-            'exams.*.device_uuid'                         => ['required', 'string', 'max:64'],
-            'exams.*.started_at'                          => ['required', 'date'],
-            'exams.*.completed_at'                        => ['required', 'date'],
+            'exams.*.rulings_score'                   => ['required', 'numeric', 'min:0', 'max:10'],
+            'exams.*.total_score'                     => ['required', 'numeric', 'min:0', 'max:100'],
+            'exams.*.device_uuid'                     => ['required', 'string', 'max:64'],
+            'exams.*.started_at'                      => ['required', 'date'],
+            'exams.*.completed_at'                    => ['required', 'date'],
 
-            'exams.*.questions'                           => ['required', 'array', 'size:3'],
-            'exams.*.questions.*.question_number'         => ['required', 'integer', 'between:1,3'],
-            'exams.*.questions.*.recitation_question_id'  => ['nullable', 'integer', 'exists:recitation_questions,id'],
-            'exams.*.questions.*.errors_count'            => ['required', 'integer', 'min:0'],
-            'exams.*.questions.*.warnings_count'          => ['required', 'integer', 'min:0'],
-            'exams.*.questions.*.continuations_count'     => ['required', 'integer', 'min:0'],
-            'exams.*.questions.*.final_score'             => ['required', 'numeric', 'min:0', 'max:30'],
+            'exams.*.questions'                       => ['required', 'array', 'size:3'],
+            'exams.*.questions.*.question_number'     => ['required', 'integer', 'between:1,3'],
+            'exams.*.questions.*.errors_count'        => ['required', 'integer', 'min:0'],
+            'exams.*.questions.*.warnings_count'      => ['required', 'integer', 'min:0'],
+            'exams.*.questions.*.continuations_count' => ['required', 'integer', 'min:0'],
+            'exams.*.questions.*.final_score'         => ['required', 'numeric', 'min:0', 'max:30'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'exams.*.student_id.exists' => 'الطالب غير موجود على الخادم — يجب أن يضيفه الأدمن أولاً ثم يُحدَّث الجهاز.',
+            'exams.*.new_memorization_parts.lte' => 'أجزاء الحفظ الجديد لا يمكن أن تتجاوز عدد الأجزاء المختبر فيها.',
         ];
     }
 }
