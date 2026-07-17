@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Exams;
 
 use App\Enums\ExamStatus;
+use App\Enums\Halaqah;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\Exam;
@@ -39,6 +40,9 @@ class Index extends Component
 
     #[Url(as: 'gender')]
     public string $genderFilter = '';
+
+    #[Url(as: 'halaqah')]
+    public string $halaqahFilter = '';
 
     #[Url(as: 'min')]
     public string $minScore = '';
@@ -100,7 +104,7 @@ class Index extends Component
 
     public function updating($name): void
     {
-        if (in_array($name, ['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'minScore', 'maxScore', 'passedFilter'])) {
+        if (in_array($name, ['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'halaqahFilter', 'minScore', 'maxScore', 'passedFilter'])) {
             $this->resetPage();
         }
     }
@@ -117,7 +121,7 @@ class Index extends Component
 
     public function clearFilters(): void
     {
-        $this->reset(['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'minScore', 'maxScore', 'passedFilter']);
+        $this->reset(['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'halaqahFilter', 'minScore', 'maxScore', 'passedFilter']);
         $this->resetPage();
     }
 
@@ -190,6 +194,9 @@ class Index extends Component
             ->when($this->examinerFilter, fn($q) => $q->where('examiner_id', $this->examinerFilter))
             ->when($this->genderFilter, fn($q) =>
                 $q->whereHas('student', fn($s) => $s->where('gender', $this->genderFilter))
+            )
+            ->when($this->halaqahFilter, fn($q) =>
+                $q->whereHas('student', fn($s) => $s->where('halaqah', $this->halaqahFilter))
             )
             ->when(is_numeric($this->minScore), fn($q) => $q->where('total_score', '>=', (float) $this->minScore))
             ->when(is_numeric($this->maxScore), fn($q) => $q->where('total_score', '<=', (float) $this->maxScore))
@@ -365,6 +372,7 @@ class Index extends Component
             'exams'              => $exams,
             'examiners'          => $examiners,
             'statuses'           => ExamStatus::cases(),
+            'halaqat'            => Halaqah::cases(),
             'totalCount'         => $totalCount,
             'passedCount'        => $passedCount,
             'failedCount'        => $failedCount,

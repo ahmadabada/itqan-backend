@@ -27,6 +27,7 @@ class Index extends Component
 
     public string $search        = '';
     public string $genderFilter  = '';
+    public string $halaqahFilter = '';
 
     // Create/edit modal
     public bool   $showFormModal  = false;
@@ -65,6 +66,11 @@ class Index extends Component
     }
 
     public function updatingGenderFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingHalaqahFilter(): void
     {
         $this->resetPage();
     }
@@ -302,6 +308,7 @@ class Index extends Component
                 ['national_id'],
             ))
             ->when(! $lockedGender && $this->genderFilter, fn($q) => $q->where('gender', $this->genderFilter))
+            ->when($this->halaqahFilter, fn($q) => $q->where('halaqah', $this->halaqahFilter))
             ->orderBy('family_name')
             ->orderBy('first_name')
             ->paginate(25);

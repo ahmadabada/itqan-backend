@@ -32,6 +32,12 @@
                 <flux:select.option value="female">أنثى</flux:select.option>
             </flux:select>
         @endunless
+        <flux:select wire:model.live="halaqahFilter" placeholder="كل الحلقات" class="max-w-[200px]">
+            <flux:select.option value="">كل الحلقات</flux:select.option>
+            @foreach($halaqat as $halaqah)
+                <flux:select.option value="{{ $halaqah->value }}">{{ $halaqah->label() }}</flux:select.option>
+            @endforeach
+        </flux:select>
     </div>
 
     {{-- Table --}}

@@ -50,6 +50,16 @@
             </div>
 
             <div>
+                <label class="block text-xs text-neutral-500 mb-1">الحلقة</label>
+                <flux:select wire:model.live="halaqahFilter" size="sm">
+                    <flux:select.option value="">الكل</flux:select.option>
+                    @foreach($halaqat as $halaqah)
+                        <flux:select.option value="{{ $halaqah->value }}">{{ $halaqah->label() }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+            </div>
+
+            <div>
                 <label class="block text-xs text-neutral-500 mb-1">من درجة</label>
                 <flux:input type="number" min="0" max="100" step="0.5" wire:model.live.debounce.400ms="minScore" placeholder="0" size="sm" />
             </div>
@@ -70,7 +80,7 @@
 
         </div>
 
-        @if($search || $statusFilter !== 'approved' || $examinerFilter || $genderFilter || $minScore !== '' || $maxScore !== '' || $passedFilter)
+        @if($search || $statusFilter !== 'approved' || $examinerFilter || $genderFilter || $halaqahFilter || $minScore !== '' || $maxScore !== '' || $passedFilter)
             <div class="mt-3 pt-3 border-t border-neutral-100">
                 <button wire:click="clearFilters" class="text-xs text-neutral-500 hover:text-danger-600 transition-colors">
                     مسح الفلاتر
