@@ -167,9 +167,9 @@
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="w-2 h-2 rounded-full bg-exam-continuation"></span>
-                            <span class="text-neutral-500">تردد:</span>
+                            <span class="text-neutral-500">حركة:</span>
                             <span class="font-bold text-exam-continuation">{{ $q->continuations_count }}</span>
-                            <span class="text-xs text-neutral-400">(−{{ $q->continuations_count * 0.5 }})</span>
+                            <span class="text-xs text-neutral-400">(−{{ $q->continuations_count * config('exam.deductions.continuation') }})</span>
                         </div>
                     </div>
                 </div>

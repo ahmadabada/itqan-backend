@@ -8,8 +8,8 @@ return [
     'total_max_score'    => 100,
 
     'deductions' => [
-        'error'        => 2,    // BR-EXAM-03
-        'warning'      => 1,    // BR-EXAM-03
-        'continuation' => 0.5,  // BR-EXAM-03
+        'error'        => 2,     // BR-EXAM-03
+        'warning'      => 1,     // BR-EXAM-03
+        'continuation' => 0.25,  // BR-EXAM-03 — "حركة" (stored key kept as continuation)
     ],
 ];

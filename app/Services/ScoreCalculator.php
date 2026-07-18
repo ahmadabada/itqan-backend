@@ -17,7 +17,7 @@ class ScoreCalculator
     {
         $deductions = ($errors * config('exam.deductions.error', 2))
                     + ($warnings * config('exam.deductions.warning', 1))
-                    + ($continuations * config('exam.deductions.continuation', 0.5));
+                    + ($continuations * config('exam.deductions.continuation', 0.25));
 
         return max(0, config('exam.score_per_question', 30) - $deductions);
     }
