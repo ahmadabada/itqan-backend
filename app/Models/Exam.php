@@ -33,8 +33,9 @@ class Exam extends Model
             'status'                     => ExamStatus::class,
             'source'                     => ExamSource::class,
             'selected_groups'            => 'array',
-            'parts_count'                => 'integer',
-            'new_memorization_parts'     => 'integer',
+            // Parts may be fractional (e.g. 5.5 أجزاء), capped at 30.00.
+            'parts_count'                => 'float',
+            'new_memorization_parts'     => 'float',
             'rulings_score'              => 'decimal:2',
             'total_score'                => 'decimal:2',
             'is_approved'                => 'boolean',

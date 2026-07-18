@@ -22,8 +22,9 @@ class SyncExamsRequest extends FormRequest
             'exams.*.student_id'                      => ['required', 'integer', 'exists:students,id'],
 
             // Scope of the exam — documentary, but the examiner must state it.
-            'exams.*.parts_count'                     => ['required', 'integer', 'between:1,30'],
-            'exams.*.new_memorization_parts'          => ['required', 'integer', 'min:0', 'lte:exams.*.parts_count'],
+            // Fractional parts are allowed (e.g. 5.5), up to 2 decimals, capped at 30.
+            'exams.*.parts_count'                     => ['required', 'numeric', 'decimal:0,2', 'gt:0', 'max:30'],
+            'exams.*.new_memorization_parts'          => ['required', 'numeric', 'decimal:0,2', 'min:0', 'lte:exams.*.parts_count'],
 
             'exams.*.rulings_score'                   => ['required', 'numeric', 'min:0', 'max:10'],
             'exams.*.total_score'                     => ['required', 'numeric', 'min:0', 'max:100'],
