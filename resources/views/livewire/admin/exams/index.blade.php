@@ -176,6 +176,11 @@
                                         {{ $effective->halaqah->label() }}
                                     </span>
                                 @endif
+                                @if($exam->round)
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
+                                        {{ $exam->round->name }}
+                                    </span>
+                                @endif
                             </div>
                         </td>
                         <td class="px-4 py-3 text-neutral-700">{{ $exam->examiner?->fullName() ?? '—' }}</td>

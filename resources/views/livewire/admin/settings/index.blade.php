@@ -84,6 +84,40 @@
                 </flux:field>
             </div>
 
+            {{-- Exam rounds (super admin only) --}}
+            @if($canManageRounds)
+                <div class="bg-white rounded-xl border border-neutral-200 p-6 space-y-5">
+                    <h3 class="text-base font-semibold text-neutral-900">جولات الاختبارات</h3>
+
+                    <flux:field>
+                        <flux:label>الجولة الفعالة لاختبارات الموبايل</flux:label>
+                        <flux:select wire:model="mobile_exam_round_id">
+                            @foreach($examRounds as $round)
+                                <option value="{{ $round->id }}">{{ $round->name }}</option>
+                            @endforeach
+                        </flux:select>
+                        <flux:error name="mobile_exam_round_id" />
+                        <flux:description>كل اختبار مرفوع من الموبايل سيلتحق بهذه الجولة تلقائياً.</flux:description>
+                    </flux:field>
+
+                    <div class="pt-3 border-t border-neutral-100">
+                        <h4 class="text-sm font-semibold text-neutral-900 mb-3">إنشاء جولة جديدة</h4>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <flux:input
+                                wire:model="new_exam_round_name"
+                                type="text"
+                                placeholder="مثال: جولة شتاء 2026"
+                                class="flex-1"
+                            />
+                            <flux:button type="button" variant="outline" wire:click="createExamRound">
+                                إضافة الجولة
+                            </flux:button>
+                        </div>
+                        <flux:error name="new_exam_round_name" />
+                    </div>
+                </div>
+            @endif
+
             {{-- Results query --}}
             <div class="bg-white rounded-xl border border-neutral-200 p-6">
                 <div class="flex items-center justify-between">

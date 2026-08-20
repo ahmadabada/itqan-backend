@@ -53,6 +53,12 @@ class SystemSettingsSeeder extends Seeder
                 'value_type'  => SettingValueType::String,
                 'description' => 'اسم الأكاديمية (يظهر في الشهادات)',
             ],
+            [
+                'key'         => 'mobile_exam_round_id',
+                'value'       => '0',
+                'value_type'  => SettingValueType::Int,
+                'description' => 'معرّف الجولة التي تُلحق بها اختبارات الموبايل تلقائياً',
+            ],
         ];
 
         foreach ($settings as $data) {

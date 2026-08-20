@@ -9,6 +9,8 @@ use App\Models\AuditLog;
 use App\Models\Exam;
 use App\Models\User;
 use App\Services\ArabicSearch;
+use App\Services\AuthoritativeExamResolver;
+use App\Services\ExamApprovalService;
 use App\Services\ScoreCalculator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
@@ -155,7 +157,16 @@ class Index extends Component
         }
 
         $oldStatus = $exam->status;
-        $exam->update(['status' => $newStatus]);
+        $exam->update([
+            'status'      => $newStatus,
+            'is_approved' => $newStatus === ExamStatus::Approved,
+        ]);
+
+        if ($newStatus === ExamStatus::Approved) {
+            app(ExamApprovalService::class)->demoteOthersInRound($exam);
+        }
+
+        app(AuthoritativeExamResolver::class)->refreshFor($exam->student_id);
 
         AuditLog::create([
             'user_id'     => Auth::user()->id,
@@ -248,7 +259,7 @@ class Index extends Component
         $sortBy       = in_array($this->sortBy, $allowedSort) ? $this->sortBy : 'created_at';
 
         $rows = $this->filteredQuery()
-            ->with(['student', 'examiner'])
+            ->with(['student', 'examiner', 'round'])
             ->orderBy($sortBy, $this->sortDir)
             ->get();
 
@@ -325,7 +336,7 @@ class Index extends Component
         $base = $this->filteredQuery();
 
         $exams = (clone $base)
-            ->with(['student', 'examiner'])
+            ->with(['student', 'examiner', 'round'])
             ->orderBy($sortBy, $this->sortDir)
             ->paginate(25);
 

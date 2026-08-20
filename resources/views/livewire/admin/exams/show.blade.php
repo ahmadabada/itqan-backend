@@ -38,6 +38,7 @@
                 <p class="text-sm text-neutral-500">
                     {{ $exam->parts_count }} جزء ({{ $exam->new_memorization_parts }} حفظ جديد) ·
                     المحاولة رقم {{ $exam->attempt_number }} ·
+                    {{ $exam->round?->name ?? 'بدون جولة' }} ·
                     {{ $exam->source?->value === 'web' ? 'من المتصفح' : 'من التطبيق' }}
                 </p>
             </div>

@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 // authoritative_decision_by / authoritative_decision_at are intentionally NOT fillable —
 // they are written only when an admin pins an exam, never via mass assignment.
 #[Fillable([
-    'student_id', 'examiner_id', 'exam_type', 'selected_groups', 'attempt_number',
+    'student_id', 'examiner_id', 'exam_round_id', 'exam_type', 'selected_groups', 'attempt_number',
     'parts_count', 'new_memorization_parts',
     'rulings_score', 'total_score', 'is_approved', 'is_authoritative',
     'status', 'source', 'device_uuid', 'client_request_id', 'reexam_permit_id',
@@ -66,6 +66,11 @@ class Exam extends Model
     public function examiner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'examiner_id');
+    }
+
+    public function round(): BelongsTo
+    {
+        return $this->belongsTo(ExamRound::class, 'exam_round_id');
     }
 
     public function reexamPermit(): BelongsTo

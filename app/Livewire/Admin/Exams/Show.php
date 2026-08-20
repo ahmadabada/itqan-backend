@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\Exam;
 use App\Services\AuthoritativeExamResolver;
+use App\Services\ExamApprovalService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -29,6 +30,7 @@ class Show extends Component
         $this->exam = $exam->load([
             'student',
             'examiner',
+            'round',
             'questions',
         ]);
     }
@@ -54,7 +56,14 @@ class Show extends Component
         }
 
         $oldStatus = $this->exam->status;
-        $this->exam->update(['status' => $newStatus]);
+        $this->exam->update([
+            'status'      => $newStatus,
+            'is_approved' => $newStatus === ExamStatus::Approved,
+        ]);
+
+        if ($newStatus === ExamStatus::Approved) {
+            app(ExamApprovalService::class)->demoteOthersInRound($this->exam);
+        }
 
         AuditLog::create([
             'user_id'     => Auth::user()->id,

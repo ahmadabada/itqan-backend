@@ -14,7 +14,10 @@ use App\Http\Resources\RecitationQuestionResource;
 use App\Models\Exam;
 use App\Models\ExamQuestion;
 use App\Models\ReexamPermit;
+use App\Services\AuthoritativeExamResolver;
+use App\Services\ExamApprovalService;
 use App\Services\ExamQuestionPicker;
+use App\Services\MobileExamRoundResolver;
 use App\Services\ScoreCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,12 +26,20 @@ use Illuminate\Support\Facades\DB;
 class ExamController extends Controller
 {
     // POST /exams/start
-    public function start(StartExamRequest $request, ExamQuestionPicker $picker): JsonResponse
+    public function start(
+        StartExamRequest $request,
+        ExamQuestionPicker $picker,
+        MobileExamRoundResolver $roundResolver,
+    ): JsonResponse
     {
         $studentId = $request->student_id;
+        $roundId = $roundResolver->resolveId();
 
         // BR-REEX-01: Check if student has approved exam
-        $hasApproved = Exam::where('student_id', $studentId)->where('is_approved', true)->exists();
+        $hasApproved = Exam::where('student_id', $studentId)
+            ->where('exam_round_id', $roundId)
+            ->where('status', ExamStatus::Approved)
+            ->exists();
 
         if ($hasApproved) {
             $permit = ReexamPermit::where('permit_code', $request->reexam_permit_code)
@@ -64,6 +75,7 @@ class ExamController extends Controller
             $exam = Exam::create([
                 'student_id'      => $studentId,
                 'examiner_id'     => $request->user()->id,
+                'exam_round_id'   => $roundId,
                 'exam_type'       => $request->exam_type,
                 'selected_groups' => $request->exam_type === ExamType::HalfQuran->value
                     ? $request->input('selected_groups')
@@ -149,7 +161,12 @@ class ExamController extends Controller
     }
 
     // POST /exams/{exam}/complete
-    public function complete(CompleteExamRequest $request, Exam $exam): JsonResponse
+    public function complete(
+        CompleteExamRequest $request,
+        Exam $exam,
+        ExamApprovalService $approvalService,
+        AuthoritativeExamResolver $authoritative,
+    ): JsonResponse
     {
         abort_if(
             $exam->examiner_id !== $request->user()->id || $exam->status !== ExamStatus::InProgress,
@@ -184,11 +201,8 @@ class ExamController extends Controller
             'completed_at'  => now(),
         ]);
 
-        // BR-REEX-08: One approved per student
-        Exam::where('student_id', $exam->student_id)
-            ->where('id', '!=', $exam->id)
-            ->where('is_approved', true)
-            ->update(['is_approved' => false]);
+        $approvalService->demoteOthersInRound($exam);
+        $authoritative->refreshFor($exam->student_id);
 
         return response()->json(['exam' => new ExamResource($exam->fresh()->load('student'))]);
     }

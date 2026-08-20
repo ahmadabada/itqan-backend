@@ -24,6 +24,8 @@ class SyncService
 
     public function __construct(
         private readonly AuthoritativeExamResolver $authoritative,
+        private readonly MobileExamRoundResolver $roundResolver,
+        private readonly ExamApprovalService $approvalService,
     ) {}
 
     public function processExams(array $exams, int $examinerId): array
@@ -61,6 +63,7 @@ class SyncService
             ]);
         }
 
+        $this->approvalService->demoteOthersInRound($exam);
         $this->authoritative->refreshFor($exam->student_id);
 
         return [
@@ -77,6 +80,7 @@ class SyncService
             return Exam::create([
                 'student_id'             => $data['student_id'],
                 'examiner_id'            => $examinerId,
+                'exam_round_id'          => $this->roundResolver->resolveId(),
                 'attempt_number'         => $this->nextAttemptNumber($data['student_id']),
                 'parts_count'            => $data['parts_count'],
                 'new_memorization_parts' => $data['new_memorization_parts'],
