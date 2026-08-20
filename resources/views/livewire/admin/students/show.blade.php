@@ -87,7 +87,7 @@
                         <thead class="bg-neutral-50 border-b border-neutral-200">
                             <tr>
                                 <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
-                                <th class="text-start px-4 py-3 text-neutral-600 font-medium">المختبر</th>
+                                <th class="text-start px-4 py-3 text-neutral-600 font-medium">المعلم</th>
                                 <th class="text-start px-4 py-3 text-neutral-600 font-medium">الأجزاء</th>
                                 <th class="text-start px-4 py-3 text-neutral-600 font-medium">الدرجة</th>
                                 <th class="text-start px-4 py-3 text-neutral-600 font-medium">الحالة</th>
@@ -102,7 +102,7 @@
                                     <td class="px-4 py-3 text-neutral-400 tabular-nums">{{ $loop->iteration + ($exams->firstItem() ?? 1) - 1 }}</td>
                                     <td class="px-4 py-3 text-neutral-700">
                                         <div class="flex items-center gap-2 flex-wrap">
-                                            <span>{{ $exam->examiner?->fullName() ?? '—' }}</span>
+                                            <span>{{ $exam->instructor?->fullName() ?? '—' }}</span>
                                             @if($isAuthoritative)
                                                 <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">النتيجة المعتمدة</span>
                                             @endif

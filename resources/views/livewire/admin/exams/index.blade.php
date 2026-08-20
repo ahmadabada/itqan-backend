@@ -182,9 +182,9 @@
                                     </span>
                                 @endif
                                 @if($effective?->halaqah)
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-primary-50 text-primary-700">
+                                    <!-- <span class="text-[10px] px-1.5 py-0.5 rounded bg-primary-50 text-primary-700">
                                         {{ $effective->halaqah->label() }}
-                                    </span>
+                                    </span> -->
                                 @endif
                                 @if($exam->round)
                                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
