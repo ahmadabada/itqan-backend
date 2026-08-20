@@ -7,6 +7,7 @@ use App\Enums\Halaqah;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\Exam;
+use App\Models\ExamRound;
 use App\Models\User;
 use App\Services\ArabicSearch;
 use App\Services\AuthoritativeExamResolver;
@@ -45,6 +46,9 @@ class Index extends Component
 
     #[Url(as: 'halaqah')]
     public string $halaqahFilter = '';
+
+    #[Url(as: 'round')]
+    public string $roundFilter = '';
 
     #[Url(as: 'min')]
     public string $minScore = '';
@@ -106,7 +110,7 @@ class Index extends Component
 
     public function updating($name): void
     {
-        if (in_array($name, ['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'halaqahFilter', 'minScore', 'maxScore', 'passedFilter'])) {
+        if (in_array($name, ['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'halaqahFilter', 'roundFilter', 'minScore', 'maxScore', 'passedFilter'])) {
             $this->resetPage();
         }
     }
@@ -123,7 +127,7 @@ class Index extends Component
 
     public function clearFilters(): void
     {
-        $this->reset(['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'halaqahFilter', 'minScore', 'maxScore', 'passedFilter']);
+        $this->reset(['search', 'statusFilter', 'examinerFilter', 'genderFilter', 'halaqahFilter', 'roundFilter', 'minScore', 'maxScore', 'passedFilter']);
         $this->resetPage();
     }
 
@@ -209,6 +213,7 @@ class Index extends Component
             ->when($this->halaqahFilter, fn($q) =>
                 $q->whereHas('student', fn($s) => $s->where('halaqah', $this->halaqahFilter))
             )
+            ->when($this->roundFilter, fn($q) => $q->where('exam_round_id', $this->roundFilter))
             ->when(is_numeric($this->minScore), fn($q) => $q->where('total_score', '>=', (float) $this->minScore))
             ->when(is_numeric($this->maxScore), fn($q) => $q->where('total_score', '<=', (float) $this->maxScore))
             ->when($this->passedFilter === 'passed', fn($q) =>
@@ -379,9 +384,14 @@ class Index extends Component
             ->orderBy('first_name')
             ->get(['id', 'first_name', 'second_name', 'third_name', 'family_name']);
 
+        $rounds = ExamRound::query()
+            ->orderByDesc('id')
+            ->get(['id', 'name']);
+
         return view('livewire.admin.exams.index', [
             'exams'              => $exams,
             'examiners'          => $examiners,
+            'rounds'             => $rounds,
             'statuses'           => ExamStatus::cases(),
             'halaqat'            => Halaqah::cases(),
             'totalCount'         => $totalCount,

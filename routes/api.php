@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DeviceController;
+use App\Http\Controllers\Api\V1\ExamRoundController;
 use App\Http\Controllers\Api\V1\StudentController;
 use App\Http\Controllers\Api\V1\SyncController;
 use Illuminate\Support\Facades\Route;
@@ -31,5 +32,8 @@ Route::prefix('v1')->group(function () {
         Route::get('sync/status', [SyncController::class, 'status']);
         Route::get('sync/commands', [SyncController::class, 'commands']);
         Route::post('sync/commands/{deviceCommand}/ack', [SyncController::class, 'ackCommand']);
+
+        // Admin maintenance: rename round names without touching round IDs.
+        Route::patch('exam-rounds/{examRound}/rename', [ExamRoundController::class, 'rename']);
     });
 });

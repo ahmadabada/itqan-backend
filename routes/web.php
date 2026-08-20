@@ -5,6 +5,7 @@ use App\Livewire\Admin\AuditLogs\Index as AdminAuditLogs;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\Devices\Index as AdminDevices;
 use App\Livewire\Admin\Exams\Index as AdminExamsIndex;
+use App\Livewire\Admin\ExamRounds\Index as AdminExamRoundsIndex;
 use App\Livewire\Admin\Exams\Show as AdminExamShow;
 use App\Livewire\Admin\Permits\Index as AdminPermits;
 use App\Livewire\Admin\RecitationQuestions\Index as AdminRecitationQuestions;
@@ -59,6 +60,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('suggested-students',    AdminSuggestedStudents::class)->name('suggested-students');
     Route::get('permits',               AdminPermits::class)->name('permits');
     Route::get('exams',             AdminExamsIndex::class)->name('exams.index');
+    Route::get('exam-rounds',       AdminExamRoundsIndex::class)->name('exam-rounds.index');
     Route::get('exams/{exam}',      AdminExamShow::class)->name('exams.show')->whereNumber('exam');
     // Merge routes retired 2026-07-17 — students now carry a UNIQUE national_id and
     // are only ever created server-side, so duplicates never arise. The components

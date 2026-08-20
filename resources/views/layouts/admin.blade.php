@@ -32,6 +32,7 @@
                 'title' => 'الاختبارات',
                 'items' => [
                     ['route' => 'admin.exams.index',   'label' => 'كل الاختبارات', 'pattern' => 'admin/exams', 'icon' => 'list'],
+                    ['route' => 'admin.exam-rounds.index', 'label' => 'الجولات', 'pattern' => 'admin/exam-rounds*', 'icon' => 'book'],
                 ],
             ],
             [
