@@ -92,7 +92,7 @@ class Index extends Component
         'national_id'  => 'رقم الهوية',
         'halaqah'      => 'الحلقة',
         'gender'       => 'الجنس',
-        'examiner'     => 'المختبر',
+        'examiner'     => 'المعلم',
         'parts'        => 'عدد الأجزاء',
         'score'        => 'الدرجة',
         'passed'       => 'مجاز؟',

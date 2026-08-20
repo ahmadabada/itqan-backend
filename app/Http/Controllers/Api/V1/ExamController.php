@@ -13,7 +13,6 @@ use App\Http\Resources\ExamResource;
 use App\Http\Resources\RecitationQuestionResource;
 use App\Models\Exam;
 use App\Models\ExamQuestion;
-use App\Models\ReexamPermit;
 use App\Services\AuthoritativeExamResolver;
 use App\Services\ExamApprovalService;
 use App\Services\ExamQuestionPicker;
@@ -34,27 +33,6 @@ class ExamController extends Controller
     {
         $studentId = $request->student_id;
         $roundId = $roundResolver->resolveId();
-
-        // BR-REEX-01: Check if student has approved exam
-        $hasApproved = Exam::where('student_id', $studentId)
-            ->where('exam_round_id', $roundId)
-            ->where('status', ExamStatus::Approved)
-            ->exists();
-
-        if ($hasApproved) {
-            $permit = ReexamPermit::where('permit_code', $request->reexam_permit_code)
-                ->where('student_id', $studentId)
-                ->first();
-
-            if (! $permit || ! $permit->isValid()) {
-                return response()->json([
-                    'error'   => 'reexam_permit_required',
-                    'message' => 'هذا الطالب لديه اختبار معتمد، يرجى تقديم إذن إعادة.',
-                ], 403);
-            }
-
-            $permit->update(['is_used' => true, 'used_at' => now()]);
-        }
 
         // BR-EXAM-10/11: pick the 3 questions before the transaction so we surface
         // "no questions available" as 422 instead of leaving a half-created exam.

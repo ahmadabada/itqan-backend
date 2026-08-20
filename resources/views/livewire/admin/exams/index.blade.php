@@ -31,7 +31,7 @@
             </div>
 
             <div>
-                <label class="block text-xs text-neutral-500 mb-1">المختبر</label>
+                <label class="block text-xs text-neutral-500 mb-1">المعلم</label>
                 <flux:select wire:model.live="examinerFilter" size="sm">
                     <flux:select.option value="">الكل</flux:select.option>
                     @foreach($examiners as $examiner)
@@ -129,7 +129,7 @@
                 <tr>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الطالب</th>
-                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">المختبر</th>
+                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">المعلم</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الأجزاء</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">
                         <button wire:click="sort('total_score')" class="flex items-center gap-1 hover:text-neutral-900">
