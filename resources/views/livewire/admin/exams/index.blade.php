@@ -31,7 +31,7 @@
             </div>
 
             <div>
-                <label class="block text-xs text-neutral-500 mb-1">المعلم</label>
+                <label class="block text-xs text-neutral-500 mb-1">المختبر</label>
                 <flux:select wire:model.live="examinerFilter" size="sm">
                     <flux:select.option value="">الكل</flux:select.option>
                     @foreach($examiners as $examiner)
@@ -50,7 +50,7 @@
             </div>
 
             <div>
-                <label class="block text-xs text-neutral-500 mb-1">الحلقة</label>
+                <label class="block text-xs text-neutral-500 mb-1">المعلم</label>
                 <flux:select wire:model.live="halaqahFilter" size="sm">
                     <flux:select.option value="">الكل</flux:select.option>
                     @foreach($halaqat as $halaqah)
@@ -130,6 +130,7 @@
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium w-12">#</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الطالب</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">المعلم</th>
+                    <th class="text-start px-4 py-3 text-neutral-600 font-medium">المختبر</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">الأجزاء</th>
                     <th class="text-start px-4 py-3 text-neutral-600 font-medium">
                         <button wire:click="sort('total_score')" class="flex items-center gap-1 hover:text-neutral-900">
@@ -181,11 +182,6 @@
                                         {{ $effective->gender->label() }}
                                     </span>
                                 @endif
-                                @if($effective?->halaqah)
-                                    <!-- <span class="text-[10px] px-1.5 py-0.5 rounded bg-primary-50 text-primary-700">
-                                        {{ $effective->halaqah->label() }}
-                                    </span> -->
-                                @endif
                                 @if($exam->round)
                                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
                                         {{ $exam->round->name }}
@@ -193,6 +189,7 @@
                                 @endif
                             </div>
                         </td>
+                        <td class="px-4 py-3 text-neutral-700">{{ $effective?->halaqah?->label() ?? '—' }}</td>
                         <td class="px-4 py-3 text-neutral-700">{{ $exam->examiner?->fullName() ?? '—' }}</td>
                         <td class="px-4 py-3 text-neutral-600 text-xs whitespace-nowrap">
                             {{ $exam->parts_count }} جزء
@@ -260,7 +257,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-12 text-center text-neutral-400">
+                        <td colspan="9" class="px-4 py-12 text-center text-neutral-400">
                             لا توجد اختبارات مطابقة للفلاتر.
                         </td>
                     </tr>

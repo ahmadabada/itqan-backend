@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DeviceController;
+use App\Http\Controllers\Api\V1\ExamController;
 use App\Http\Controllers\Api\V1\ExamRoundController;
 use App\Http\Controllers\Api\V1\StudentController;
 use App\Http\Controllers\Api\V1\SyncController;
@@ -35,5 +36,9 @@ Route::prefix('v1')->group(function () {
 
         // Admin maintenance: rename round names without touching round IDs.
         Route::patch('exam-rounds/{examRound}/rename', [ExamRoundController::class, 'rename']);
+
+        // Admin maintenance: edit/delete exams.
+        Route::patch('exams/{exam}', [ExamController::class, 'update']);
+        Route::delete('exams/{exam}', [ExamController::class, 'destroy']);
     });
 });

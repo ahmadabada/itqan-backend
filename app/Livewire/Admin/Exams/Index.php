@@ -90,9 +90,9 @@ class Index extends Component
     public const EXPORT_COLUMN_LABELS = [
         'student_name' => 'اسم الطالب',
         'national_id'  => 'رقم الهوية',
-        'halaqah'      => 'الحلقة',
+        'halaqah'      => 'المعلم',
         'gender'       => 'الجنس',
-        'examiner'     => 'المعلم',
+        'examiner'     => 'المختبر',
         'parts'        => 'عدد الأجزاء',
         'score'        => 'الدرجة',
         'passed'       => 'مجاز؟',

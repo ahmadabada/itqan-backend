@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\ExamSource;
 use App\Enums\ExamStatus;
 use App\Enums\ExamType;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CompleteExamRequest;
 use App\Http\Requests\Api\StartExamRequest;
 use App\Http\Requests\Api\UpdateProgressRequest;
 use App\Http\Resources\ExamResource;
 use App\Http\Resources\RecitationQuestionResource;
+use App\Models\AuditLog;
 use App\Models\Exam;
 use App\Models\ExamQuestion;
 use App\Services\AuthoritativeExamResolver;
@@ -21,6 +23,7 @@ use App\Services\ScoreCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class ExamController extends Controller
 {
@@ -47,7 +50,7 @@ class ExamController extends Controller
             ], 422);
         }
 
-        $exam = DB::transaction(function () use ($request, $studentId, $picked) {
+        $exam = DB::transaction(function () use ($request, $studentId, $roundId, $picked) {
             $attemptNumber = (Exam::where('student_id', $studentId)->max('attempt_number') ?? 0) + 1;
 
             $exam = Exam::create([
@@ -201,5 +204,123 @@ class ExamController extends Controller
             ->get();
 
         return response()->json(['exams' => ExamResource::collection($exams)]);
+    }
+
+    // PATCH /exams/{exam}
+    public function update(
+        Request $request,
+        Exam $exam,
+        ExamApprovalService $approvalService,
+        AuthoritativeExamResolver $authoritative,
+    ): JsonResponse {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'status'                 => ['sometimes', Rule::in(array_column(ExamStatus::cases(), 'value'))],
+            'rulings_score'          => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:10'],
+            'total_score'            => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
+            'completed_at'           => ['sometimes', 'nullable', 'date'],
+            'parts_count'            => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:30'],
+            'new_memorization_parts' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:30'],
+            'exam_round_id'          => ['sometimes', 'nullable', 'exists:exam_rounds,id'],
+        ]);
+
+        $oldValues = [
+            'status'                 => $exam->status?->value,
+            'rulings_score'          => $exam->rulings_score,
+            'total_score'            => $exam->total_score,
+            'completed_at'           => $exam->completed_at?->toISOString(),
+            'parts_count'            => $exam->parts_count,
+            'new_memorization_parts' => $exam->new_memorization_parts,
+            'exam_round_id'          => $exam->exam_round_id,
+        ];
+
+        $updates = [];
+        if (array_key_exists('status', $validated)) {
+            $newStatus = ExamStatus::from($validated['status']);
+            $updates['status'] = $newStatus;
+            $updates['is_approved'] = $newStatus === ExamStatus::Approved;
+        }
+        foreach (['rulings_score', 'total_score', 'parts_count', 'new_memorization_parts', 'exam_round_id'] as $field) {
+            if (array_key_exists($field, $validated)) {
+                $updates[$field] = $validated[$field];
+            }
+        }
+        if (array_key_exists('completed_at', $validated)) {
+            $updates['completed_at'] = $validated['completed_at'];
+        }
+
+        if (! empty($updates)) {
+            $exam->update($updates);
+
+            if (($updates['status'] ?? null) === ExamStatus::Approved) {
+                $approvalService->demoteOthersInRound($exam);
+            }
+
+            $authoritative->refreshFor($exam->student_id);
+
+            AuditLog::create([
+                'user_id'     => $request->user()->id,
+                'exam_id'     => $exam->id,
+                'action'      => 'exam_updated_api',
+                'old_values'  => $oldValues,
+                'new_values'  => $updates,
+                'ip_address'  => $request->ip(),
+                'user_agent'  => $request->userAgent(),
+            ]);
+        }
+
+        return response()->json([
+            'exam' => new ExamResource($exam->fresh()->load(['student', 'examiner', 'questions'])),
+        ]);
+    }
+
+    // DELETE /exams/{exam}
+    public function destroy(
+        Request $request,
+        Exam $exam,
+        AuthoritativeExamResolver $authoritative,
+    ): JsonResponse {
+        $this->ensureAdmin($request);
+
+        $oldValues = [
+            'id'            => $exam->id,
+            'student_id'    => $exam->student_id,
+            'examiner_id'   => $exam->examiner_id,
+            'exam_round_id' => $exam->exam_round_id,
+            'status'        => $exam->status?->value,
+            'total_score'   => $exam->total_score,
+        ];
+
+        $studentId = $exam->student_id;
+        $examId = $exam->id;
+
+        $exam->delete();
+        $authoritative->refreshFor($studentId);
+
+        AuditLog::create([
+            'user_id'     => $request->user()->id,
+            'exam_id'     => $examId,
+            'action'      => 'exam_deleted_api',
+            'old_values'  => $oldValues,
+            'ip_address'  => $request->ip(),
+            'user_agent'  => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'deleted' => true,
+            'exam_id' => $examId,
+        ]);
+    }
+
+    private function ensureAdmin(Request $request): void
+    {
+        $user = $request->user();
+
+        abort_if(
+            $user->role === UserRole::Examiner,
+            403,
+            'هذه العملية متاحة للأدمن فقط.'
+        );
     }
 }
