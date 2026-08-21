@@ -245,6 +245,14 @@
                                         اعتماد
                                     </button>
                                 @endif
+                                {{-- Deep-links into the details page with the edit form already open --}}
+                                <a
+                                    href="{{ route('admin.exams.show', ['exam' => $exam->id, 'edit' => 1]) }}"
+                                    wire:navigate
+                                    class="text-xs font-medium text-neutral-600 hover:text-primary-600 transition-colors"
+                                >
+                                    تعديل
+                                </a>
                                 <a
                                     href="{{ route('admin.exams.show', $exam->id) }}"
                                     wire:navigate

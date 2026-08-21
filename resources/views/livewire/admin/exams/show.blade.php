@@ -48,6 +48,11 @@
                      newest-wins; an admin can pin a specific approved exam or set
                      one aside. In-progress exams get no button. --}}
                 <div class="flex items-center gap-2 flex-wrap">
+                    @unless($editing)
+                        <flux:button variant="outline" size="sm" icon="pencil-square" wire:click="startEdit">
+                            تعديل الاختبار
+                        </flux:button>
+                    @endunless
                     @if($exam->status?->value === 'approved')
                         @if($exam->authoritative_decision_by)
                             <flux:button variant="outline" size="sm" wire:click="unpin"
@@ -135,8 +140,151 @@
         </div>
     </div>
 
+    {{-- ── Edit form ────────────────────────────────────────────────────────
+         Replaces the read-only score breakdown while editing. Question scores and
+         the total are derived from the counts (never typed directly), so what the
+         admin sees here is exactly what ScoreCalculator will store. --}}
+    @if($editing)
+        <form wire:submit="saveEdit" class="bg-white rounded-2xl border border-primary-200 overflow-hidden mb-6">
+
+            <div class="px-6 py-4 border-b border-neutral-200 bg-primary-50/40">
+                <h2 class="font-bold text-neutral-900">تعديل الاختبار</h2>
+                <p class="text-xs text-neutral-500 mt-0.5">
+                    تُحتسب درجة كل سؤال والمجموع تلقائياً من عدد الفتحات والتنبيهات والحركات.
+                </p>
+            </div>
+
+            {{-- Exam-level fields --}}
+            <div class="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div>
+                    <label class="block text-xs text-neutral-500 mb-1">المختبر</label>
+                    <flux:select wire:model="editExaminerId" size="sm">
+                        <flux:select.option value="">— اختر المختبر —</flux:select.option>
+                        @foreach($examiners as $examiner)
+                            <flux:select.option value="{{ $examiner->id }}">{{ $examiner->fullName() }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    @error('editExaminerId') <p class="text-xs text-danger-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs text-neutral-500 mb-1">الجولة</label>
+                    <flux:select wire:model="editRoundId" size="sm">
+                        <flux:select.option value="">بدون جولة</flux:select.option>
+                        @foreach($rounds as $round)
+                            <flux:select.option value="{{ $round->id }}">{{ $round->name }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    @error('editRoundId') <p class="text-xs text-danger-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs text-neutral-500 mb-1">عدد الأجزاء</label>
+                    <flux:input type="number" min="0" max="30" step="0.5" wire:model="editPartsCount" size="sm" />
+                    @error('editPartsCount') <p class="text-xs text-danger-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs text-neutral-500 mb-1">أجزاء الحفظ الجديد</label>
+                    <flux:input type="number" min="0" max="30" step="0.5" wire:model="editNewParts" size="sm" />
+                    @error('editNewParts') <p class="text-xs text-danger-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs text-neutral-500 mb-1">تاريخ البدء</label>
+                    <flux:input type="datetime-local" wire:model="editStartedAt" size="sm" />
+                    @error('editStartedAt') <p class="text-xs text-danger-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs text-neutral-500 mb-1">تاريخ الانتهاء</label>
+                    <flux:input type="datetime-local" wire:model="editCompletedAt" size="sm" />
+                    @error('editCompletedAt') <p class="text-xs text-danger-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+
+            </div>
+
+            {{-- Per-question counts --}}
+            <div class="border-t border-neutral-100 divide-y divide-neutral-100">
+                @foreach($exam->questions as $q)
+                    @php
+                        $qErrors        = (int) ($editQuestions[$q->id]['errors_count'] ?? 0);
+                        $qWarnings      = (int) ($editQuestions[$q->id]['warnings_count'] ?? 0);
+                        $qContinuations = (int) ($editQuestions[$q->id]['continuations_count'] ?? 0);
+                        $qScore         = \App\Services\ScoreCalculator::questionScore($qErrors, $qWarnings, $qContinuations);
+                    @endphp
+                    <div class="px-6 py-4">
+                        <div class="flex items-center justify-between mb-3 gap-3">
+                            <h3 class="font-semibold text-neutral-900">السؤال {{ $q->question_number }}</h3>
+                            <p class="text-xl font-black {{ $qScore >= 25 ? 'text-success-600' : ($qScore >= 15 ? 'text-warning-600' : 'text-danger-500') }} whitespace-nowrap">
+                                {{ number_format($qScore, 1) }}
+                                <span class="text-xs font-normal text-neutral-400">/ 30</span>
+                            </p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs text-neutral-500 mb-1">فتح (−{{ config('exam.deductions.error') }} لكل واحدة)</label>
+                                <flux:input type="number" min="0" step="1" size="sm"
+                                    wire:model.live.debounce.400ms="editQuestions.{{ $q->id }}.errors_count" />
+                                @error('editQuestions.'.$q->id.'.errors_count') <p class="text-xs text-danger-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs text-neutral-500 mb-1">تنبيهات (−{{ config('exam.deductions.warning') }})</label>
+                                <flux:input type="number" min="0" step="1" size="sm"
+                                    wire:model.live.debounce.400ms="editQuestions.{{ $q->id }}.warnings_count" />
+                                @error('editQuestions.'.$q->id.'.warnings_count') <p class="text-xs text-danger-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs text-neutral-500 mb-1">حركة (−{{ config('exam.deductions.continuation') }})</label>
+                                <flux:input type="number" min="0" step="1" size="sm"
+                                    wire:model.live.debounce.400ms="editQuestions.{{ $q->id }}.continuations_count" />
+                                @error('editQuestions.'.$q->id.'.continuations_count') <p class="text-xs text-danger-600 mt-1">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+
+                {{-- Rulings --}}
+                <div class="px-6 py-4 bg-neutral-50/50">
+                    <div class="flex items-center justify-between gap-4 flex-wrap">
+                        <div>
+                            <h3 class="font-semibold text-neutral-900">الأحكام</h3>
+                            <p class="text-xs text-neutral-500 mt-0.5">من 0 إلى 10 — اتركها فارغة إن لم تُرصد بعد.</p>
+                        </div>
+                        <div class="w-32">
+                            <flux:input type="number" min="0" max="10" step="0.5" size="sm"
+                                wire:model.live.debounce.400ms="editRulingsScore" placeholder="—" />
+                        </div>
+                    </div>
+                    @error('editRulingsScore') <p class="text-xs text-danger-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Live total --}}
+                <div class="px-6 py-4 bg-primary-50/30 flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                        <h3 class="font-bold text-neutral-900">المجموع بعد التعديل</h3>
+                        @if($previewTotal === null)
+                            <p class="text-xs text-neutral-500 mt-0.5">الاختبار ما زال جارياً — لن تُحتسب درجة نهائية قبل إكماله.</p>
+                        @endif
+                    </div>
+                    <p class="text-3xl font-black text-neutral-900">
+                        {{ $previewTotal !== null ? number_format($previewTotal, 1) : '—' }}
+                        <span class="text-sm font-normal text-neutral-400">/ 100</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-neutral-100 bg-neutral-50/50">
+                <flux:button type="button" variant="outline" wire:click="cancelEdit">إلغاء</flux:button>
+                <flux:button type="submit" variant="primary">حفظ التعديلات</flux:button>
+            </div>
+
+        </form>
+    @endif
+
     {{-- Score breakdown --}}
-    <div class="bg-white rounded-2xl border border-neutral-200 overflow-hidden mb-6">
+    <div @class(['bg-white rounded-2xl border border-neutral-200 overflow-hidden mb-6', 'hidden' => $editing])>
         <div class="px-6 py-4 border-b border-neutral-200">
             <h2 class="font-bold text-neutral-900">تفاصيل الدرجات</h2>
         </div>
